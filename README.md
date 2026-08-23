@@ -295,7 +295,7 @@ python plot_scenario.py --scenario output_scenario_trail_1
 
 ## OPF 数学模型
 
-OPF 模型基于二阶锥规划（SOCP）松弛的 LinDistFlow，使用 Gurobi 求解，经历了**三个阶段**的演变到达当前版本。
+OPF 模型基于二阶锥规划（SOCP）松弛的 LinDistFlow，使用 Gurobi 求解。
 
 ### 变量定义
 
@@ -341,13 +341,35 @@ $$ S_{ij,\max}^2 \geq l_{ij} \cdot U_i $$
 
 热极限的完整约束链为：$S_{\max}^2 \geq l \cdot U_i \geq P^2 + Q^2$，通过两条独立的二次约束表达，但两条约束**不共享 $P,Q$ 变量**，避免了 Hessian 冲突。$P,Q$ 的箱式约束与 SOCP 链式约束共同确保热极限的有效性。
 
-#### ④ 节点功率平衡
+#### ④ 节点功率平衡（含线损）
 
-$$ P_j^{\text{inj}} = P_{j,\text{base}} + \sum \Delta p_f - \sum r_{ij}l_{ij} $$
+对于每个母线 $i \in \mathcal{N}$，流入功率减去流出功率等于该母线的净消耗功率（含线损）。
 
-$$ Q_j^{\text{inj}} = Q_{j,\text{base}} + \sum \Delta q_f - \sum x_{ij}l_{ij} $$
+**有功平衡：**
 
-线损项 $r_{ij}l_{ij}$ 和 $x_{ij}l_{ij}$ 显式计入功率平衡。
+$$
+\sum_{(k,i) \in \mathcal{E}} P_{ki} \;-\!\! \sum_{(i,j) \in \mathcal{E}} P_{ij} =
+\begin{cases}
+\displaystyle\sum_{\ell \in \mathcal{L}_i} p_{\ell}^0 z_\ell \;-\!\! \sum_{g \in \mathcal{G}_i} p_g +\!\! \sum_{s \in \mathcal{S}_i} (p_{\text{ch},s} - p_{\text{dis},s}) +\!\! \sum_{(k,i) \in \mathcal{E}} R_{ki} l_{ki}, & i \neq \text{slack} \\[10pt]
+P_{\text{sub}} \;-\!\! \displaystyle\sum_{(i,j) \in \mathcal{E}} P_{ij} = \displaystyle\sum_{\ell \in \mathcal{L}_i} p_{\ell}^0 z_\ell \;-\!\! \sum_{g \in \mathcal{G}_i} p_g +\!\! \sum_{s \in \mathcal{S}_i} (p_{\text{ch},s} - p_{\text{dis},s}) +\!\! \sum_{(k,i) \in \mathcal{E}} R_{ki} l_{ki}, & i = \text{slack}
+\end{cases}
+$$
+
+**无功平衡：**
+
+$$
+\sum_{(k,i) \in \mathcal{E}} Q_{ki} \;-\!\! \sum_{(i,j) \in \mathcal{E}} Q_{ij} =
+\begin{cases}
+\displaystyle\sum_{\ell \in \mathcal{L}_i} q_\ell^0 z_\ell \;-\!\! \sum_{g \in \mathcal{G}_i} q_g \;-\!\! \sum_{c \in \mathcal{C}_i} q_c +\!\! \sum_{(k,i) \in \mathcal{E}} X_{ki} l_{ki}, & i \neq \text{slack} \\[10pt]
+Q_{\text{sub}} \;-\!\! \displaystyle\sum_{(i,j) \in \mathcal{E}} Q_{ij} = \displaystyle\sum_{\ell \in \mathcal{L}_i} q_\ell^0 z_\ell \;-\!\! \sum_{g \in \mathcal{G}_i} q_g \;-\!\! \sum_{c \in \mathcal{C}_i} q_c +\!\! \sum_{(k,i) \in \mathcal{E}} X_{ki} l_{ki}, & i = \text{slack}
+\end{cases}
+$$
+
+其中：
+- $p_\ell^0$、$q_\ell^0$ = 原始负荷有功/无功（pu）
+- $q_c$ = 电容器注入无功（正值，pu）
+- $\mathcal{L}_i$、$\mathcal{G}_i$、$\mathcal{S}_i$、$\mathcal{C}_i$ 分别为挂接在母线 $i$ 上的负荷、光伏、储能、电容器集合
+- 新增的 $R_{ki} l_{ki}$ 和 $X_{ki} l_{ki}$ 项即为**以该母线为末端的支路线损**，使功率平衡中包含了线路发热损耗，物理上更完整
 
 #### ⑤ 节点电压约束
 
@@ -374,57 +396,6 @@ $$ z_i^{\text{lb}} \leq z_i \leq z_i^{\text{ub}} $$
 | EV（电动汽车） | $[0.3, 1.0]$ | 可调范围 30%~100% |
 | AC（空调/柔性负荷） | $[0, 1.0]$ | 可调范围 0%~100% |
 | Fixed（固定负荷） | $z = 1.0$ | 不可调 |
-
-### 约束演变历程
-
-模型经历了**三个阶段**的演变：
-
-#### 阶段一：LP LinDistFlow（原始版）
-
-原始版做了三步近似，将非凸 AC OPF 简化为线性规划：
-
-| 近似步骤 | 舍弃的项 | 后果 |
-|---------|---------|------|
-| 有功平衡忽略线损 | $R\frac{P^2+Q^2}{V^2}$ | 认为支路首末端有功相等，实际值略偏小 |
-| 无功平衡忽略线损 | $X\frac{P^2+Q^2}{V^2}$ | 同上 |
-| 电压降方程忽略耦合项 | $(R^2+X^2)\frac{P^2+Q^2}{V^2}$ | 电压方程变成纯线性，忽略线损对电压的影响 |
-
-此外，完全没有热极限约束（$P,Q$ 上下界为 $-\infty$ 到 $+\infty$），优化器可让线路流过任意大的功率。
-
-#### 阶段二：SOCP 松弛引入线损
-
-通过引入辅助变量 $l_{ij}$（支路电流平方），将线损项 $(R^2+X^2)l$ 线性地加入电压降方程，将 $R\cdot l$ 和 $X\cdot l$ 加入功率平衡。$l$ 与 $P,Q,U$ 的关系通过二阶锥约束 $l \cdot U \geq P^2+Q^2$ 松弛实现。
-
-对于**辐射状**配电网，该松弛在最优解处通常是**紧的**（等号成立），等效于精确 DistFlow。
-
-**数值问题**：该阶段同时引入了热极限二次约束 $P^2+Q^2 \leq S_{\max}^2$，导致 $P,Q$ 同时出现在两条二次约束中：
-
-| 约束 | 表达式 |
-|:---|:------|
-| SOCP 松弛（线损） | $l \cdot U \geq P^2 + Q^2$ |
-| 支路热极限 | $P^2 + Q^2 \leq S_{\max}^2$ |
-
-两条约束的**右侧完全相同**（都是 $P^2+Q^2$），在 max 场景下同时被激活时，求解器 Barrier 算法的 KKT 矩阵中 $P,Q$ 对应的 Hessian 出现数值冗余，矩阵近奇异 → **STATUS\_12（NUMERIC）**。
-
-#### 阶段三：当前版——线性箱式热极限
-
-为避免两个二次约束在相同变量上竞争，将热极限从二次不等式改为**线性箱式约束**，直接加到 $P,Q$ 变量的上下界中：
-
-| 修改前 | 修改后 |
-|:-----|:------|
-| $P, Q \in [-\infty, +\infty] \;+\; P^2+Q^2 \leq S_{\max}^2$（二次约束） | $P, Q \in [-S_{\max}, S_{\max}]$（线性变量上下界） |
-
-此外，添加 SOCP 链式约束 $S_{\max}^2 \geq l \cdot U$ 作为冗余一致性校验。热极限通过变量边界实现，不再产生额外的约束行，也不贡献 Hessian 矩阵的非零元。
-
-**演变对比表：**
-
-| 演变阶段 | 模型类型 | 线损建模 | 热极限约束 | 求解状态 |
-|:-------:|:-------:|:--------:|:----------:|:--------:|
-| LP 原始版 | LP | 忽略 | 无 | 不正确（约束缺失） |
-| SOCP 尝试版 | SOCP | SOCP 松弛 | $P^2+Q^2 \leq S_{\max}^2$（与 SOCP 共享 $P,Q$） | STATUS\_12（数值崩溃） |
-| **当前版** | **SOCP** | **SOCP 松弛** | 线性箱式 $|P|,|Q| \leq S_{\max}$ + SOCP 链式校验 | **OPTIMAL** ✅ |
-
-**核心创新**：将热极限从 $P^2+Q^2 \leq S_{\max}^2$ 改为线性箱式约束 $|P|,|Q| \leq S_{\max}$，将约束从 $P,Q$ 的二次耦合解耦到线性上下界，避免了两条二次约束共享 $P,Q$ 导致的 Hessian 冲突。数学上虽然比原始 $P^2+Q^2 \leq S_{\max}^2$ 更保守（不考虑功率因数，$|P|=S_{\max}$ 且 $Q=0$ 时视在功率只有 $S_{\max}$ 的 $1/\sqrt{2}$），但保证了数值稳定。
 
 ***
 
