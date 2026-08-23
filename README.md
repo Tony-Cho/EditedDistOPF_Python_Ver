@@ -339,11 +339,11 @@ $$ |P_{ij}| \leq S_{ij,\max}, \quad |Q_{ij}| \leq S_{ij,\max} $$
 
 $$ S_{ij,\max}^2 \geq l_{ij} \cdot U_i $$
 
-热极限的完整约束链为：$S_{\max}^2 \geq l \cdot U_i \geq P^2 + Q^2$，通过两条独立的二次约束表达，但两条约束**不共享 $P,Q$ 变量**，避免了 Hessian 冲突。$P,Q$ 的箱式约束与 SOCP 链式约束共同确保热极限的有效性。
+热极限的完整约束链为： $S_{\max}^2 \geq l \cdot U_i \geq P^2 + Q^2$ ，通过两条独立的二次约束表达，但两条约束**不共享 $P,Q$ 变量**，避免了 Hessian 冲突。$P,Q$ 的箱式约束与 SOCP 链式约束共同确保热极限的有效性。
 
 #### ④ 节点功率平衡（含线损）
 
-对于每个母线 $i \in \mathcal{N}$，流入功率减去流出功率等于该母线的净消耗功率（含线损）。
+对于每个母线 $i \in \mathcal{N}$ ，流入功率减去流出功率等于该母线的净消耗功率（含线损）。
 
 **有功平衡：**
 
@@ -366,9 +366,9 @@ Q_{\text{sub}} - \sum_{(i,j) \in \mathcal{E}} Q_{ij} = \sum_{\ell \in \mathcal{L
 $$
 
 其中：
-- $p_\ell^0$、$q_\ell^0$ = 原始负荷有功/无功（pu）
+- $p_\ell^0$ 、 $q_\ell^0$ = 原始负荷有功/无功（pu）
 - $q_c$ = 电容器注入无功（正值，pu）
-- $\mathcal{L}_i$、$\mathcal{G}_i$、$\mathcal{S}_i$、$\mathcal{C}_i$ 分别为挂接在母线 $i$ 上的负荷、光伏、储能、电容器集合
+- $\mathcal{L}_i$ 、 $\mathcal{G}_i$ 、 $\mathcal{S}_i$ 、 $\mathcal{C}_i$ 分别为挂接在母线 $i$ 上的负荷、光伏、储能、电容器集合
 - 新增的 $R_{ki} l_{ki}$ 和 $X_{ki} l_{ki}$ 项即为**以该母线为末端的支路线损**，使功率平衡中包含了线路发热损耗，物理上更完整
 
 #### ⑤ 节点电压约束
