@@ -348,20 +348,20 @@ $$ S_{ij,\max}^2 \geq l_{ij} \cdot U_i $$
 **有功平衡：**
 
 $$
-\sum_{(k,i) \in \mathcal{E}} P_{ki} \;-\!\! \sum_{(i,j) \in \mathcal{E}} P_{ij} =
+\sum_{(k,i) \in \mathcal{E}} P_{ki} - \sum_{(i,j) \in \mathcal{E}} P_{ij} =
 \begin{cases}
-\displaystyle\sum_{\ell \in \mathcal{L}_i} p_{\ell}^0 z_\ell \;-\!\! \sum_{g \in \mathcal{G}_i} p_g +\!\! \sum_{s \in \mathcal{S}_i} (p_{\text{ch},s} - p_{\text{dis},s}) +\!\! \sum_{(k,i) \in \mathcal{E}} R_{ki} l_{ki}, & i \neq \text{slack} \\[10pt]
-P_{\text{sub}} \;-\!\! \displaystyle\sum_{(i,j) \in \mathcal{E}} P_{ij} = \displaystyle\sum_{\ell \in \mathcal{L}_i} p_{\ell}^0 z_\ell \;-\!\! \sum_{g \in \mathcal{G}_i} p_g +\!\! \sum_{s \in \mathcal{S}_i} (p_{\text{ch},s} - p_{\text{dis},s}) +\!\! \sum_{(k,i) \in \mathcal{E}} R_{ki} l_{ki}, & i = \text{slack}
+\sum_{\ell \in \mathcal{L}_i} p_{\ell}^0 z_\ell - \sum_{g \in \mathcal{G}_i} p_g + \sum_{s \in \mathcal{S}_i} (p_{\text{ch},s} - p_{\text{dis},s}) + \sum_{(k,i) \in \mathcal{E}} R_{ki} l_{ki}, & i \neq \text{slack} \\
+P_{\text{sub}} - \sum_{(i,j) \in \mathcal{E}} P_{ij} = \sum_{\ell \in \mathcal{L}_i} p_{\ell}^0 z_\ell - \sum_{g \in \mathcal{G}_i} p_g + \sum_{s \in \mathcal{S}_i} (p_{\text{ch},s} - p_{\text{dis},s}) + \sum_{(k,i) \in \mathcal{E}} R_{ki} l_{ki}, & i = \text{slack}
 \end{cases}
 $$
 
 **无功平衡：**
 
 $$
-\sum_{(k,i) \in \mathcal{E}} Q_{ki} \;-\!\! \sum_{(i,j) \in \mathcal{E}} Q_{ij} =
+\sum_{(k,i) \in \mathcal{E}} Q_{ki} - \sum_{(i,j) \in \mathcal{E}} Q_{ij} =
 \begin{cases}
-\displaystyle\sum_{\ell \in \mathcal{L}_i} q_\ell^0 z_\ell \;-\!\! \sum_{g \in \mathcal{G}_i} q_g \;-\!\! \sum_{c \in \mathcal{C}_i} q_c +\!\! \sum_{(k,i) \in \mathcal{E}} X_{ki} l_{ki}, & i \neq \text{slack} \\[10pt]
-Q_{\text{sub}} \;-\!\! \displaystyle\sum_{(i,j) \in \mathcal{E}} Q_{ij} = \displaystyle\sum_{\ell \in \mathcal{L}_i} q_\ell^0 z_\ell \;-\!\! \sum_{g \in \mathcal{G}_i} q_g \;-\!\! \sum_{c \in \mathcal{C}_i} q_c +\!\! \sum_{(k,i) \in \mathcal{E}} X_{ki} l_{ki}, & i = \text{slack}
+\sum_{\ell \in \mathcal{L}_i} q_\ell^0 z_\ell - \sum_{g \in \mathcal{G}_i} q_g - \sum_{c \in \mathcal{C}_i} q_c + \sum_{(k,i) \in \mathcal{E}} X_{ki} l_{ki}, & i \neq \text{slack} \\
+Q_{\text{sub}} - \sum_{(i,j) \in \mathcal{E}} Q_{ij} = \sum_{\ell \in \mathcal{L}_i} q_\ell^0 z_\ell - \sum_{g \in \mathcal{G}_i} q_g - \sum_{c \in \mathcal{C}_i} q_c + \sum_{(k,i) \in \mathcal{E}} X_{ki} l_{ki}, & i = \text{slack}
 \end{cases}
 $$
 
