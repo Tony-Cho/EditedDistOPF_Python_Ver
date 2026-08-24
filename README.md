@@ -50,60 +50,15 @@ EditedDistOPF/
 
 ***
 
-## 输入数据格式
+## 输入输出格式
 
-### 1. 网络模型 — `data/csv_case33/model_xxx/`
+各模块的输入模型、场景时序曲线、抽样配置与输出结果的**详细字段约定**统一由以下文档控制，此处不再展开：
 
-CSV 格式的配电网模型文件，由 `parse_csv.py` 解析。包含：
-
-| 文件                  | 内容                   |
-| ------------------- | -------------------- |
-| `model_circuit.csv` | 电路参数 (基准容量等)         |
-| `model_buses.csv`   | 母线列表                 |
-| `model_lines.csv`   | 支路参数 (阻抗、热极限)        |
-| `model_loads.csv`   | 负荷参数 (类型、满载功率、可调度标记) |
-| `model_pvs.csv`     | 光伏参数 (容量、功率因数)       |
-| `model_storage.csv` | 储能参数 (功率、容量、效率)      |
-
-详细格式见 `data/csv_case33/输入控制.md`。
-
-### 2. 场景时序曲线 — `scenario/scenario_xxx/`
-
-定义 96 个断面 (15min 间隔，0:00\~23:45) 的时序曲线：
-
-| 文件                    | 内容                     |
-| --------------------- | ---------------------- |
-| `scenario_loads.csv`  | 负荷基准功率 (kw)            |
-| `scenario_pvs.csv`    | 光伏容量 (pmpp\_kw) 与辐照度曲线 |
-| `scenario_shapes.csv` | 各负荷/PV 的归一化时序曲线 (96 点) |
-| `scenario_lines.csv`  | 线路热极限 (可选)             |
-
-### 3. 抽样配置
-
-根据文件所在目录不同，文件名不同：
-- `training_dataset/` 下子文件夹 → `training_dataset_mc_config.csv`
-- `output/` 下子文件夹 → `output_mc_config.csv`
-
-格式一致，均为两列 CSV：
-
-```csv
-name,value
-model,model_storage_bus18          # 输入模型名
-scenario,output_scenario_trail_1   # 场景名
-n_samples,200                      # 每断面样本数
-seed,42                            # 随机种子
-start_time,0:00                    # 起始断面
-end_time,23:45                     # 结束断面
-EV_Bus19_lb,truncated_normal,cv:0.10   # 组件分布: 分布名, 参数
-EV_Bus19_ub,truncated_normal,cv:0.10
-AC_Bus2_lb,truncated_normal,cv:0.10
-AC_Bus2_ub,truncated_normal,cv:0.10
-```
-
-- 全局参数：`model` / `scenario` / `n_samples` / `seed` / `start_time` / `end_time`
-- 组件分布：`truncated_normal` (参数 `cv`/`sigma`/`lo`/`hi`) 或 `uniform` (参数 `lo`/`hi`)
-- 组件名规则：`{可调度负荷名}_cur`|`_lb`|`_ub` / 固定负荷名 / 光伏名 / 储能名
-- **未配置的组件固定为断面基线值**（方案A：配置即抽样，未配置即固定）
+| 文档 | 内容 |
+| ---- | ---- |
+| `data/csv_case33/输入控制.md` | 网络模型输入格式（CSV 模型文件） |
+| `output/output输出控制.md` | 场景预测/验证输出格式（KNN / OPF） |
+| `training_dataset/training_dataset输出控制.md` | 训练集输出格式 |
 
 ***
 
@@ -129,9 +84,9 @@ python main.py model_storage_bus18              # 指定模型
 python main.py data/csv_case33/model_xxx/       # 直接指定路径
 ```
 
-**输出** → `demo_result/demo_result_xxx/`：
+**输出** → `demo_result/demo_result_{model_name}/`：
 
-- `demo_result_xxx.txt` — 概览文件
+- `demo_result_{model_name}.txt` — 概览文件
 - `csv/training_dataset_system.csv` — 系统级指标
 - `csv/training_dataset_buses.csv` — 节点电压 + 净注入
 - `csv/training_dataset_lines.csv` — 支路潮流 + 损耗
@@ -205,19 +160,21 @@ python training_dataset_mc.py --config training_dataset_mc_config.csv
 ```bash
 python train_knn.py                                          # 默认读取 knn_config.csv
 python train_knn.py --config knn_lib/{训练集文件夹名}/knn_config.csv
-python train_knn.py --k 7 --weights uniform --test_size 0.2  # CLI 覆盖
+python train_knn.py --k 7 --weights uniform --test-size 0.2  # CLI 覆盖
 ```
 
 **特征** (48 维)：固定负荷功率 (35) + 储能 p\_net/q (2×N\_st) + PV p\_out/q\_out (2×N\_pv) + EV/AC 负荷 p\_out (N\_evac)
 
-**输出** → `knn_lib/{训练集文件夹名}/`：
+**输出** → `knn_lib/training_dataset_{model}_sample/`：
 
+- `knn_config.csv` — 训练配置 (含数据集路径)
+- `knn_params.csv` — 模型参数 + 数据规模
+- `knn_metrics.csv` — 评估指标 (R²/MAE/RMSE)
+- `knn_predictions.csv` — 测试集逐样本预测对比
 - `knn_model_min.joblib` / `knn_model_max.joblib` — KNN 模型
 - `knn_scaler_min.joblib` / `knn_scaler_max.joblib` — 标准化器
 - `knn_feature_names.json` — 输入特征列名
 - `knn_target_names.json` — 输出目标列名
-- `knn_config.csv` — 训练配置 (含数据集路径)
-- `训练集名_predictions.csv` — 测试集预测结果
 
 #### 2.3 KNN 真值场景计算概率化表征上下界 — `scenario_dataset_mc.py`
 
@@ -228,8 +185,9 @@ python scenario_dataset_mc.py --config output/output_scenario_trail_1/output_mc_
 python scenario_dataset_mc.py --scenario output_scenario_trail_1 --model training_dataset_storage_bus18_sample --n 500
 ```
 
-**输出** → `output/output_{场景名}/`：
+**输出** → `output/output_{scenario_name}/`：
 
+- `output_mc_config.csv` — 抽样配置副本 (保留)
 - `output_sample.csv` — 抽样输入场景表 (48 维特征)
 - `output_system.csv` — 根节点注入预测 (min/max)
 - `output_storage.csv` — 储能出力预测
@@ -282,7 +240,7 @@ scenario/scenario_{scenario_name}/ ← 场景时序曲线
 python plot_scenario.py --scenario output_scenario_trail_1
 ```
 
-**输出** → `output/output_{场景名}/plot_{场景名}.png`
+**输出** → `output/output_{scenario_name}/plot_{scenario_name}.png`
 
 绘制内容：
 
@@ -307,7 +265,9 @@ OPF 模型基于二阶锥规划（SOCP）松弛的 LinDistFlow，使用 Gurobi �
 | $p_{\text{sub}}, q_{\text{sub}}$ | 根节点（slack bus）注入有功/无功 | pu |
 | $p_i^{\text{pv}}, q_i^{\text{pv}}$ | 光伏 $i$ 有功/无功出力 | pu |
 | $p_i^{\text{ch}}, p_i^{\text{dis}}$ | 储能 $i$ 充电/放电功率 | pu |
-| $z_i$ | 可调度负荷 $i$ 的削减因子 | — |
+| $q_i^{\text{st}}$ | 储能 $i$ 无功出力 | pu |
+| $e_i$ | 储能 $i$ 能量状态 | pu·h |
+| $z_i$ | 可调度负荷 $i$ 的调节因子（乘当前挂载，可削减/增荷） | — |
 
 ### 目标函数
 
@@ -323,23 +283,87 @@ $$ U_j = U_i - 2(r_{ij}P_{ij} + x_{ij}Q_{ij}) + (r_{ij}^2 + x_{ij}^2)l_{ij} $$
 
 其中 $r_{ij}, x_{ij}$ 为支路 $(i,j)$ 的电阻和电抗。
 
+**推导（无近似，精确）：**
+
+**(1) 支路电压降（相量形式）。** 对支路 $(i,j)$，阻抗 $z_{ij}=r_{ij}+jx_{ij}$，电流从 $i$ 流向 $j$：
+
+$$ \tilde{V}_j = \tilde{V}_i - z_{ij}\,\tilde{I}_{ij} $$
+
+**(2) 用首端复功率反解电流。** 支路首端复功率 $S_{ij}=P_{ij}+jQ_{ij}=\tilde{V}_i\tilde{I}_{ij}^*$，即 $\tilde{I}_{ij}=\dfrac{P_{ij}-jQ_{ij}}{\tilde{V}_i^*}$。
+
+**(3) 代入并取模平方（消去相角）。**
+
+$$ |V_j|^2 = \left| V_i - \frac{rP+xQ + j(xP-rQ)}{V_i} \right|^2 = V_i^2 - 2(rP+xQ) + \frac{(rP+xQ)^2+(xP-rQ)^2}{V_i^2} $$
+
+交叉项 $2rxPQ$ 恰好抵消，分子合并为 $(r^2+x^2)(P^2+Q^2)$。
+
+**(4) 引入 $U$ 与 $l$ 化为线性。** 定义 $U_i=V_i^2$，电流平方 $l_{ij}=|I_{ij}|^2=\dfrac{P_{ij}^2+Q_{ij}^2}{V_i^2}=\dfrac{P^2+Q^2}{U_i}$（由 $|S|=|V||I|$ 得出），代入得①式。
+
+**各项物理含义：**
+
+- $U_i - U_j = 2(rP+xQ)$：线路电压降落（P 经电阻、Q 经电抗的投影叠加）；
+- $(r^2+x^2)l$：电流流过阻抗产生的附加压降，即**线损项**，仅当 $l\neq0$（电流非零）时存在；
+- $l_{ij}$ 的引入使方程对 $(U,P,Q,l)$ 为**线性**，非线性被"藏"进 $l$ 的定义式——这是后续 SOCP 松弛的前提。
+
+整条推导只取模平方消去相角，**无任何近似假设**，故①式对辐射状配电网是精确的；LinDistFlow 则额外假设电压接近 1 pu 并忽略 $(r^2+x^2)l$ 项（LP），SOCP 版保留该项（凸 SOCP），更接近全 AC 潮流精度。
+
 #### ② SOCP 松弛（线损建模）
 
 $$ l_{ij} \cdot U_i \geq P_{ij}^2 + Q_{ij}^2 $$
 
-将非凸的潮流等式松弛为二阶锥约束，使问题变为凸优化。
+**为什么要把潮流等式松弛为二阶锥？**
+
+精确 DistFlow 中电流平方的定义为**分式等式**：
+
+$$ l_{ij} = \frac{P_{ij}^2 + Q_{ij}^2}{U_i} $$
+
+该式对 $(P,Q,U,l)$ 是**非线性非凸**的。若作为等式原样保留，问题退化为非凸 NLP：Gurobi 无法求解一般非凸问题，即使能解也不保证全局最优。
+
+而电压降方程 $U_j = U_i - 2(r_{ij}P_{ij} + x_{ij}Q_{ij}) + (r_{ij}^2 + x_{ij}^2)l_{ij}$ 对 $(U,P,Q,l)$ 是**线性**的——非线性只藏在 $l$ 的定义式中。因此将等式松弛为不等式：
+
+$$ l_{ij} \cdot U_i \geq P_{ij}^2 + Q_{ij}^2 \iff \left\| \begin{pmatrix} 2P_{ij} \\ 2Q_{ij} \\ l_{ij} - U_i \end{pmatrix} \right\|_2 \leq l_{ij} + U_i $$
+
+不等式左端即**二阶锥**（SOC），是凸约束。松弛后整个问题由非凸 NLP 变为凸 SOCP，Gurobi 原生支持二阶锥约束，求解高效且保证全局最优。
+
+**为什么松弛后仍然是精确的（紧性）？**
+
+对于**辐射状（树状）配电网**，该松弛在最优解处**通常取等号**（松弛"紧"），即 $l_{ij}U_i = P_{ij}^2+Q_{ij}^2$。直觉上，$l_{ij}$ 代表支路电流平方，其增大只会抬高线损（电压降与功率平衡中的 $R_{ij}l_{ij}$、$X_{ij}l_{ij}$ 项随之增大），而目标函数对根节点注入单调，优化没有动机让 $l$ 虚高，因此不会产生"伪潮流"解。故松弛前后最优解一致，等效于精确 DistFlow 线损模型。
+
+**与 LinDistFlow 的对比：**
+
+| 项目 | LinDistFlow（原版，忽略线损） | SOCP 松弛（当前版） |
+|:----|:----|:----|
+| 电压方程 | $U_i - U_j = 2(rP+xQ)$ | $U_j = U_i - 2(rP+xQ) + (r^2+x^2)l$ |
+| 线损项 $(r^2+x^2)l$ | ❌ 忽略 | ✅ 保留 |
+| 松弛紧性 | — | 辐射网下紧 |
+| 凸性 | LP | SOCP（凸） |
 
 #### ③ 热极限约束
 
-热极限通过**线性箱式约束**实现，直接限定支路有功/无功功率的上下界：
-
-$$ |P_{ij}| \leq S_{ij,\max}, \quad |Q_{ij}| \leq S_{ij,\max} $$
-
-此外，添加 SOCP 链式约束作为冗余一致性校验：
+热极限通过 **SOCP 链式约束**实现（作为冗余一致性校验），不再需要额外的箱式上下界：
 
 $$ S_{ij,\max}^2 \geq l_{ij} \cdot U_i $$
 
-热极限的完整约束链为： $S_{\max}^2 \geq l \cdot U_i \geq P^2 + Q^2$ ，通过两条独立的二次约束表达，但两条约束**不共享 $P,Q$ 变量**，避免了 Hessian 冲突。$P,Q$ 的箱式约束与 SOCP 链式约束共同确保热极限的有效性。
+**完整约束链与物理含义：**
+
+热极限的完整约束链为 $S_{\max}^2 \geq l \cdot U_i \geq P^2 + Q^2$ ，通过两条独立的二次约束表达，但两条约束**不共享 $P,Q$ 变量**，避免了 Hessian 冲突。链式约束独立保证热极限的有效性，支路功率变量 $P,Q$ 在全实数域取值。
+
+- **$lU$ 的物理身份**：$l_{ij}=|I_{ij}|^2$、$U_i=|V_i|^2$，故 $l_{ij}U_i = |V_i|^2|I_{ij}|^2 = |S_{ij}|^2 = P_{ij}^2+Q_{ij}^2$。当 SOCP 松弛取紧（$lU=P^2+Q^2$）时，链式约束 $S^2\ge lU$ 就退化为物理热极限 $P^2+Q^2\le S^2$——它并非人为强加，而是借助电流变量 $l$ 把"视在功率不超额定"这一物理约束无损地编码进锥模型；
+- **为何恒成立且不"误伤"**：$P^2+Q^2\le lU$（SOCP 松弛）与 $lU\le S^2$（链式）均为显式约束，可行域内任意解同时满足，故 $P^2+Q^2\le lU\le S^2$ 恒成立，热极限始终被夹住。即使松弛不紧（$lU>P^2+Q^2$），由于目标函数对 $l$ 单调（$l$ 仅以线损形式出现），优化器会把 $l$ 压到最小值、自动取紧，链式只在物理极限真正越界时才起作用，不会提前限制 $P,Q$；
+- **为何不需要箱式约束**：$|P|\le S,\ |Q|\le S$ 蕴含于 $P^2+Q^2\le S^2$，而后者已由链式约束精确保证，故 $P,Q$ 无需额外的箱式上下界即可满足热极限。
+
+**$S_{ij,\max}$ 的计算：**
+
+1. 线路阻抗由 Ω 折算为 pu：$z_{\text{base}} = V_{\text{base}}^2 / S_{\text{base}} = 12.66^2 / 10 \approx 16.03\ \Omega$，$r_{ij}^{\text{pu}} = R_{ij}/z_{\text{base}}$，$x_{ij}^{\text{pu}} = X_{ij}/z_{\text{base}}$。
+2. 若数据给出 `normamps`（额定电流 A/相，来自 OpenDSS），则优先使用：
+
+$$ S_{ij,\max} = \frac{\sqrt{3}\, V_{\text{base}}\, I_{\text{rated}}}{S_{\text{base}}} $$
+
+3. 否则按阻抗反比例分配热限额。先计算所有启用线路的平均阻抗模值 $z_{\text{avg}} = \frac{1}{|\mathcal{E}|}\sum_{(i,j)\in\mathcal{E}}\sqrt{(r_{ij}^{\text{pu}})^2+(x_{ij}^{\text{pu}})^2}$，再：
+
+$$ S_{ij,\max} = \operatorname{clamp}\!\left(2\cdot\frac{z_{\text{avg}}}{\max(z_{ij}^{\text{pu}},\,0.001)},\ 0.3,\ 2.5\right) \cdot P_{\text{load}}^{\text{total}} $$
+
+其中 $P_{\text{load}}^{\text{total}}$ 为全网总有功负荷（pu）。含义：**阻抗越小（越靠近变电站），线路分配到的热限额越大**。
 
 #### ④ 节点功率平衡（含线损）
 
@@ -366,14 +390,14 @@ Q_{\text{sub}} - \sum_{(i,j) \in \mathcal{E}} Q_{ij} = \sum_{\ell \in \mathcal{L
 $$
 
 其中：
-- $p_\ell^0$ 、 $q_\ell^0$ = 原始负荷有功/无功（pu）
+- $p_\ell^0$ 、 $q_\ell^0$ = 负荷**当前实际挂载**的有功/无功（pu，= 满载 × `LoadShape.mult[0]`）；实际消费 = $p_\ell^0 z_\ell$，固定负荷 $z_\ell \equiv 1$
 - $q_c$ = 电容器注入无功（正值，pu）
 - $\mathcal{L}_i$ 、 $\mathcal{G}_i$ 、 $\mathcal{S}_i$ 、 $\mathcal{C}_i$ 分别为挂接在母线 $i$ 上的负荷、光伏、储能、电容器集合
 - 新增的 $R_{ki} l_{ki}$ 和 $X_{ki} l_{ki}$ 项即为**以该母线为末端的支路线损**，使功率平衡中包含了线路发热损耗，物理上更完整
 
 #### ⑤ 节点电压约束
 
-$$ 0.95 \leq V_i \leq 1.07 \ \text{pu}, \quad V_{\text{slack}} = 1.05 \ \text{pu} $$
+$$ 0.95 \leq V_i \leq 1.07 \ \text{pu} \ \Longleftrightarrow \ 0.9025 \leq U_i \leq 1.1449 \ \text{pu}^2, \quad V_{\text{slack}} = 1.05 \ \text{pu} $$
 
 #### ⑥ 光伏出力约束
 
@@ -381,28 +405,59 @@ $$ 0 \leq p_i^{\text{pv}} \leq P_i^{\text{mpp}}, \quad |q_i^{\text{pv}}| \leq p_
 
 光伏出力在 $0$ 到满辐照额定功率之间连续可调，无功按功率因数限制。
 
-#### ⑦ 储能约束（单时段，无时序耦合）
+#### ⑦ 储能约束（含能量状态与 PCS 容量）
 
-$$ p_i^{\text{ch}} \geq 0, \quad p_i^{\text{dis}} \geq 0 $$
+充电/放电功率非负；储能无功为**独立箱式约束**（允许待机/纯无功运行，区别于光伏）：
 
-单时段模型不考虑时序耦合，充电和放电功率非负。
+$$ 0 \leq p_i^{\text{ch}} \leq p_{\text{ch,ub}}, \qquad 0 \leq p_i^{\text{dis}} \leq p_{\text{dis,ub}}, \qquad |q_i^{\text{st}}| \leq q_{\max} $$
 
-#### ⑧ 可调度负荷约束
+**能量状态约束**（$\Delta t = 1$ h，$\eta_{\text{ch}}=\eta_{\text{dis}}=0.95$）：
 
-$$ z_i^{\text{lb}} \leq z_i \leq z_i^{\text{ub}} $$
+$$ e_i = e_{\text{init},i} + \Delta t \left( p_i^{\text{ch}} \eta_{\text{ch}} - \frac{p_i^{\text{dis}}}{\eta_{\text{dis}}} \right) $$
 
-| 负荷类型 | $z$ 范围 | 说明 |
-|:--------|:--------|:----|
-| EV（电动汽车） | $[0.3, 1.0]$ | 可调范围 30%~100% |
-| AC（空调/柔性负荷） | $[0, 1.0]$ | 可调范围 0%~100% |
-| Fixed（固定负荷） | $z = 1.0$ | 不可调 |
+能量上下限通过变量边界 $e_i \in [e_{\min}, e_{\max}]$ 实现（由储能容量与当前时段能量窗口决定）。
+
+**15 分钟支撑约束**（放电 15 min 后剩余能量仍 ≥ 下限、充电 15 min 不溢出）：
+
+$$ e_i - 0.25\, p_i^{\text{dis}} \geq e_{\min}, \qquad e_i + 0.25\, p_i^{\text{ch}} \leq e_{\max} $$
+
+**PCS 视在功率运行范围**（防止有功无功同时满发超出变流器容量）：
+
+$$ (p_i^{\text{dis}} - p_i^{\text{ch}})^2 + (q_i^{\text{st}})^2 \leq S_{\text{pcs},i}^2 $$
+
+其中 $S_{\text{pcs},i}$ 为储能 PCS 额定容量（pu）。
+
+说明：未显式施加充放电互斥约束（$p^{\text{ch}}\cdot p^{\text{dis}} = 0$）。由于目标函数对根节点注入单调，同时充放电只会造成能量浪费，最优解自然不同时充放电。
+
+#### ⑧ 可调度负荷约束（z 为当前挂载的调节因子）
+
+$$ z_i^{\text{lb}} \leq z_i \leq z_i^{\text{ub}}, \qquad \text{实际消费} = z_i \times \text{当前挂载}_i $$
+
+$z$ 不再乘在**满载容量**上（不再是"直接削减"的硬比例），而是作用于**当前实际挂载**、既可削减也可**增荷**的软性调节因子：
+
+- **当前挂载** `base_ratio` 取自 OpenDSS 官方 `LoadShape.mult[0]`：实际功率 = 满载 × mult（[parse_dss.py](parse_dss.py) 解析，无自定义字段）；
+- **z 可大于 1**：增荷指令允许负荷从当前挂载提升到满载；也可削减至可调下限；
+- **z 上下限**由可调范围（相对满载）与当前挂载推导：
+
+$$ z_i^{\text{lb}} = \frac{\text{mult}_i^{\text{lb}}}{\text{mult}_i^{\text{cur}}}, \qquad z_i^{\text{ub}} = \frac{\text{mult}_i^{\text{ub}}}{\text{mult}_i^{\text{cur}}} $$
+
+其中 $\text{mult}^{\text{cur}}$ 为当前挂载比例，$\text{mult}^{\text{lb/ub}}$ 为可调范围（相对满载，默认 [0, 1]，显式配置见 [parse_dss.py](parse_dss.py) `LOAD_MULT_LIMITS`）。
+
+**可调范围配置（相对满载）：**
+
+| 负荷类型 | mult 范围 | 当前挂载 | z 范围 | 说明 |
+|:--------|:--------|:--------|:--------|:----|
+| EV_Bus19 / EV_Bus20 | [0.3, 1.0] | 0.4 / 0.6 | [0.75, 2.5] / [0.5, 1.667] | EV 最低充电需求 = 满载 30% |
+| EV_Bus7 | [0.1, 1.0] | 0.25 | [0.4, 4.0] | 可削减至满载 10% |
+| AC_Bus2（空调） | [0.1, 1.0] | 0.5 | [0.2, 2.0] | 最低保持满载 10% |
+| Fixed（固定负荷） | [1.0, 1.0] | 1.0 | z = 1.0 | 不可调 |
 
 ***
 
 详细输出格式约定见：
 
-- `output/输出控制.md` — 场景预测/验证输出格式
-- `training_dataset/输出控制.md` — 训练集输出格式
+- `output/output输出控制.md` — 场景预测/验证输出格式
+- `training_dataset/training_dataset输出控制.md` — 训练集输出格式
 
 所有数值均为**工程单位**：功率 MW、无功 Mvar、能量 MWh、电压 pu。
 
@@ -417,7 +472,7 @@ $$ z_i^{\text{lb}} \leq z_i \leq z_i^{\text{ub}} $$
 
 ## 使用示例
 
-### 全链路示例
+### 全链路示例（流水线）
 
 ```bash
 # 1. 生成训练集 (model_storage_bus18, 500 样本/断面)
@@ -441,6 +496,64 @@ python plot_scenario.py --scenario output_scenario_trail_1
 ```bash
 python main.py model_storage_bus18
 ```
+
+### 各程序参数与优先级
+
+**通用优先级**：CLI 显式参数 > 配置文件(config CSV) 非空值 > 内置默认值。下表"覆盖"即指覆盖 config 中对应键的值；config 未提供或未找到时该键使用内置默认值（表中加粗数值/字符串）。
+
+#### main.py — 单断面 OPF（无配置文件）
+
+| 参数 | 作用 | 默认值 |
+| ---- | ---- | ---- |
+| `scenario`（位置参数） | 场景名（`model_xxx` / `scenario_xxx`）或 `.dss` 路径 | `scenario_all` |
+
+#### training_dataset_mc.py — 训练集生成（config: `training_dataset_mc_config.csv`）
+
+| 参数 | 作用 | 优先级 | 默认值 |
+| ---- | ---- | ---- | ---- |
+| `scenario`（位置） | 模型/场景名 | 给了即**覆盖** config 的 `model`/`scenario`；缺省读 config | 无内置默认 |
+| `--config` | 全局控制 CSV 路径 | 显式指定优先；缺省自动找 `training_dataset/training_dataset_{scenario}_sample/training_dataset_mc_config.csv` | — |
+| `--n` | 抽样次数 | **覆盖** config `n_samples` | **500** |
+| `--seed` | 随机种子 | **覆盖** config `seed` | **42** |
+| `--sense` | `min` / `max` / `both` | 无 config 对应键 | **`both`** |
+
+> config 其余键（无 CLI）：`start_time`（默认 **`0:00`**）、`end_time`（默认 **`23:45`**）。
+
+#### train_knn.py — KNN 模型训练（config: `knn_config.csv`）
+
+| 参数 | 作用 | 优先级 | 默认值 |
+| ---- | ---- | ---- | ---- |
+| `--config` | knn_config.csv 路径 | 显式指定；缺省按 `--csv`/默认训练集名推导 `knn_lib/{训练集名}/knn_config.csv` | — |
+| `--csv` | 训练集 CSV 目录 | **覆盖** config `dataset_csv` | `training_dataset/training_dataset_storage_bus18_sample/csv` |
+| `--k` | KNN 邻居数 | **覆盖** config `knn_k` | **5** |
+| `--weights` | `uniform` / `distance` | **覆盖** config `knn_weights` | **`distance`** |
+| `--test-size` | 测试集比例 | **覆盖** config `knn_test_size` | **0.2** |
+| `--seed` | 随机种子 | **覆盖** config `knn_seed` | **42** |
+
+> config 其余键（无 CLI，留空即用内置默认）：`knn_metric`（默认 **`minkowski`**）、`knn_p`（默认 **2**）、`knn_algorithm`（默认 **`auto`**）、`knn_leaf_size`（默认 **30**）、`knn_n_jobs`（默认空 → sklearn 默认 **1**）。
+
+#### scenario_dataset_mc.py — KNN 场景预测（config: `output_mc_config.csv`）
+
+| 参数 | 作用 | 优先级 | 默认值 |
+| ---- | ---- | ---- | ---- |
+| `--config` | output_mc_config.csv 路径 | 显式指定优先；缺省自动查找 `output/` 下唯一一份配置（多份时必须 `--config`） | — |
+| `--scenario` | 场景名 | **覆盖** config `scenario` | 无内置默认（读 config） |
+| `--model` | 模型名（训练集文件夹名） | **覆盖** config `model` | 无内置默认（读 config） |
+| `--model-dir` | 模型目录 | **覆盖** | `knn_lib/{model}/` |
+| `--n` | 每断面抽样次数 | **覆盖** config `n_samples` | **200** |
+| `--seed` | 随机种子 | **覆盖** config `seed` | **42** |
+| `--start-time` / `--end-time` | 起始/结束断面 | **覆盖** config 对应键 | **`0:00` / `23:45`** |
+
+#### scenario_dataset_mc_OPF.py — OPF 真值验证（config: `output_mc_config.csv`）
+
+与 `scenario_dataset_mc.py` 规则相同（`--config` / `--scenario` / `--n` / `--seed` / `--start-time` / `--end-time`，默认 **200 / 42 / `0:00` / `23:45`**），无 `--model`（实际求解 OPF，config 的 `model` 键被忽略）。
+
+#### plot_scenario.py — 可视化（无配置文件）
+
+| 参数 | 作用 | 默认值 |
+| ---- | ---- | ---- |
+| `--scenario` | 场景名 | `output_scenario_trail_1` |
+| `--out-dir` | 图片输出目录 | `output/{scenario}/` |
 
 ***
 
