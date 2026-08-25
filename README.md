@@ -327,7 +327,7 @@ $$ l_{ij} \cdot U_i \geq P_{ij}^2 + Q_{ij}^2 \iff \left\| \begin{pmatrix} 2P_{ij
 
 **为什么松弛后仍然是精确的（紧性）？**
 
-对于**辐射状（树状）配电网**，该松弛在最优解处**通常取等号**（松弛"紧"），即 $l_{ij}U_i = P_{ij}^2+Q_{ij}^2$。直觉上，$l_{ij}$ 代表支路电流平方，其增大只会抬高线损（电压降与功率平衡中的 $R_{ij}l_{ij}$、$X_{ij}l_{ij}$ 项随之增大），而目标函数对根节点注入单调，优化没有动机让 $l$ 虚高，因此不会产生"伪潮流"解。故松弛前后最优解一致，等效于精确 DistFlow 线损模型。
+对于**辐射状（树状）配电网**，该松弛在最优解处**通常取等号**（松弛"紧"），即 $l_{ij}U_i = P_{ij}^2+Q_{ij}^2$。直觉上， $l_{ij}$ 代表支路电流平方，其增大只会抬高线损（电压降与功率平衡中的 $R_{ij}l_{ij}$、 $X_{ij}l_{ij}$ 项随之增大），而目标函数对根节点注入单调，优化没有动机让 $l$ 虚高，因此不会产生"伪潮流"解。故松弛前后最优解一致，等效于精确 DistFlow 线损模型。
 
 **与 LinDistFlow 的对比：**
 
@@ -348,13 +348,13 @@ $$ S_{ij,\max}^2 \geq l_{ij} \cdot U_i $$
 
 热极限的完整约束链为 $S_{\max}^2 \geq l \cdot U_i \geq P^2 + Q^2$ ，通过两条独立的二次约束表达，但两条约束**不共享 $P,Q$ 变量**，避免了 Hessian 冲突。链式约束独立保证热极限的有效性，支路功率变量 $P,Q$ 在全实数域取值。
 
-- **$lU$ 的物理身份**：$l_{ij}=|I_{ij}|^2$、$U_i=|V_i|^2$，故 $l_{ij}U_i = |V_i|^2|I_{ij}|^2 = |S_{ij}|^2 = P_{ij}^2+Q_{ij}^2$。当 SOCP 松弛取紧（$lU=P^2+Q^2$）时，链式约束 $S^2\ge lU$ 就退化为物理热极限 $P^2+Q^2\le S^2$——它并非人为强加，而是借助电流变量 $l$ 把"视在功率不超额定"这一物理约束无损地编码进锥模型；
-- **为何恒成立且不"误伤"**：$P^2+Q^2\le lU$（SOCP 松弛）与 $lU\le S^2$（链式）均为显式约束，可行域内任意解同时满足，故 $P^2+Q^2\le lU\le S^2$ 恒成立，热极限始终被夹住。即使松弛不紧（$lU>P^2+Q^2$），由于目标函数对 $l$ 单调（$l$ 仅以线损形式出现），优化器会把 $l$ 压到最小值、自动取紧，链式只在物理极限真正越界时才起作用，不会提前限制 $P,Q$；
-- **为何不需要箱式约束**：$|P|\le S,\ |Q|\le S$ 蕴含于 $P^2+Q^2\le S^2$，而后者已由链式约束精确保证，故 $P,Q$ 无需额外的箱式上下界即可满足热极限。
+- **$lU$ 的物理身份**： $l_{ij}=|I_{ij}|^2$、 $U_i=|V_i|^2$，故 $l_{ij}U_i = |V_i|^2|I_{ij}|^2 = |S_{ij}|^2 = P_{ij}^2+Q_{ij}^2$。当 SOCP 松弛取紧（ $lU=P^2+Q^2$）时，链式约束 $S^2\ge lU$ 就退化为物理热极限 $P^2+Q^2\le S^2$——它并非人为强加，而是借助电流变量 $l$ 把"视在功率不超额定"这一物理约束无损地编码进锥模型；
+- **为何恒成立且不"误伤"**： $P^2+Q^2\le lU$（SOCP 松弛）与 $lU\le S^2$（链式）均为显式约束，可行域内任意解同时满足，故 $P^2+Q^2\le lU\le S^2$ 恒成立，热极限始终被夹住。即使松弛不紧（ $lU>P^2+Q^2$），由于目标函数对 $l$ 单调（ $l$ 仅以线损形式出现），优化器会把 $l$ 压到最小值、自动取紧，链式只在物理极限真正越界时才起作用，不会提前限制 $P,Q$；
+- **为何不需要箱式约束**： $|P|\le S,\ |Q|\le S$ 蕴含于 $P^2+Q^2\le S^2$，而后者已由链式约束精确保证，故 $P,Q$ 无需额外的箱式上下界即可满足热极限。
 
 **$S_{ij,\max}$ 的计算：**
 
-1. 线路阻抗由 Ω 折算为 pu：$z_{\text{base}} = V_{\text{base}}^2 / S_{\text{base}} = 12.66^2 / 10 \approx 16.03\ \Omega$，$r_{ij}^{\text{pu}} = R_{ij}/z_{\text{base}}$，$x_{ij}^{\text{pu}} = X_{ij}/z_{\text{base}}$。
+1. 线路阻抗由 Ω 折算为 pu： $z_{\text{base}} = V_{\text{base}}^2 / S_{\text{base}} = 12.66^2 / 10 \approx 16.03\ \Omega$， $r_{ij}^{\text{pu}} = R_{ij}/z_{\text{base}}$， $x_{ij}^{\text{pu}} = X_{ij}/z_{\text{base}}$。
 2. 若数据给出 `normamps`（额定电流 A/相，来自 OpenDSS），则优先使用：
 
 $$ S_{ij,\max} = \frac{\sqrt{3}\, V_{\text{base}}\, I_{\text{rated}}}{S_{\text{base}}} $$
@@ -411,7 +411,7 @@ $$ 0 \leq p_i^{\text{pv}} \leq P_i^{\text{mpp}}, \quad |q_i^{\text{pv}}| \leq p_
 
 $$ 0 \leq p_i^{\text{ch}} \leq p_{\text{ch,ub}}, \qquad 0 \leq p_i^{\text{dis}} \leq p_{\text{dis,ub}}, \qquad |q_i^{\text{st}}| \leq q_{\max} $$
 
-**能量状态约束**（$\Delta t = 1$ h，$\eta_{\text{ch}}=\eta_{\text{dis}}=0.95$）：
+**能量状态约束**（ $\Delta t = 1$ h， $\eta_{\text{ch}}=\eta_{\text{dis}}=0.95$）：
 
 $$ e_i = e_{\text{init},i} + \Delta t \left( p_i^{\text{ch}} \eta_{\text{ch}} - \frac{p_i^{\text{dis}}}{\eta_{\text{dis}}} \right) $$
 
@@ -427,7 +427,7 @@ $$ (p_i^{\text{dis}} - p_i^{\text{ch}})^2 + (q_i^{\text{st}})^2 \leq S_{\text{pc
 
 其中 $S_{\text{pcs},i}$ 为储能 PCS 额定容量（pu）。
 
-说明：未显式施加充放电互斥约束（$p^{\text{ch}}\cdot p^{\text{dis}} = 0$）。由于目标函数对根节点注入单调，同时充放电只会造成能量浪费，最优解自然不同时充放电。
+说明：未显式施加充放电互斥约束（ $p^{\text{ch}}\cdot p^{\text{dis}} = 0$）。由于目标函数对根节点注入单调，同时充放电只会造成能量浪费，最优解自然不同时充放电。
 
 #### ⑧ 可调度负荷约束（z 为当前挂载的调节因子）
 
@@ -441,7 +441,7 @@ $z$ 不再乘在**满载容量**上（不再是"直接削减"的硬比例），�
 
 $$ z_i^{\text{lb}} = \frac{\text{mult}_i^{\text{lb}}}{\text{mult}_i^{\text{cur}}}, \qquad z_i^{\text{ub}} = \frac{\text{mult}_i^{\text{ub}}}{\text{mult}_i^{\text{cur}}} $$
 
-其中 $\text{mult}^{\text{cur}}$ 为当前挂载比例，$\text{mult}^{\text{lb/ub}}$ 为可调范围（相对满载，默认 [0, 1]，显式配置见 [parse_dss.py](parse_dss.py) `LOAD_MULT_LIMITS`）。
+其中 $\text{mult}^{\text{cur}}$ 为当前挂载比例， $\text{mult}^{\text{lb/ub}}$ 为可调范围（相对满载，默认 [0, 1]，显式配置见 [parse_dss.py](parse_dss.py) `LOAD_MULT_LIMITS`）。
 
 **可调范围配置（相对满载）：**
 
