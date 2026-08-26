@@ -49,6 +49,40 @@ def uniform(lo, hi, rng):
     return rng.uniform(lo, hi)
 
 
+def resolve_mu_sigma(cfg, shapes, t, base_mu=0.0):
+    """从组件分布配置 (dist, params) 解析槽 t 的 (μ, σ) —— 支持 shape 曲线名。
+
+    - μ: params['mu'] 为 shape 名 → shapes[名].mult[t] (96 点曲线, 取槽 t 值);
+        为数字 → 该值; 缺省 → base_mu
+    - σ: params['sigma'] 为 shape 名 → shapes[名].mult[t]; 为数字 → 该值;
+        params['cv'] → cv×μ; 均缺省 → 0 (不抽样)
+
+    shapes: {曲线名: LoadShape(含 .mult)}; 曲线缺失或点数不足时回退 base_mu / 0。
+    """
+    dist, params = cfg
+    if dist != "truncated_normal":
+        return base_mu, 0.0
+    mu = base_mu
+    if "mu" in params:
+        v = params["mu"]
+        if isinstance(v, str):
+            s = shapes.get(v)
+            mu = s.mult[min(t, len(s.mult) - 1)] if (s is not None and s.mult) else base_mu
+        else:
+            mu = float(v)
+    sigma = 0.0
+    if "sigma" in params:
+        v = params["sigma"]
+        if isinstance(v, str):
+            s = shapes.get(v)
+            sigma = s.mult[min(t, len(s.mult) - 1)] if (s is not None and s.mult) else 0.0
+        else:
+            sigma = float(v)
+    elif "cv" in params:
+        sigma = float(params["cv"]) * max(mu, 1e-6)
+    return mu, sigma
+
+
 # 已注册分布 (便于扩展与提示)
 AVAILABLE = {
     "truncated_normal": "mu, sigma, lo(可选), hi(可选) 或由调用方由 cv×mu 折算",

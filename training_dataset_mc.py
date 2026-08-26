@@ -36,7 +36,7 @@ import numpy as np
 from opf_model import build_and_solve_opf, print_result_summary
 from save_results import save_sampled_results
 from load_network import load_network, resolve_model_path
-from sampling import sample, truncated_normal_vec
+from sampling import sample, truncated_normal_vec, resolve_mu_sigma
 
 
 # =====================================================================
@@ -88,15 +88,21 @@ def load_mc_config(path: str):
                 if ":" not in cell:
                     raise ValueError(f"分布参数格式错误: {cell!r} (应为 参数名:值)")
                 k, v = cell.split(":", 1)
-                params[k.strip()] = float(v.strip())
+                k, v = k.strip(), v.strip()
+                try:
+                    params[k] = float(v)        # 数字参数 (cv:0.10 / sigma:0.05)
+                except ValueError:
+                    params[k] = v               # shape 名 (mu:<曲线> / sigma:<曲线>, 96 点)
             comps[name] = (val, params)
     return global_params, comps
 
 
-def _make_sampler(comp_cfg: dict, name: str, base_mu, default_lo, default_hi):
+def _make_sampler(comp_cfg: dict, name: str, base_mu, default_lo, default_hi,
+                  shapes: dict = None, t: int = 0):
     """按组件配置构建标量抽样器; 未配置返回 None (走默认回退逻辑)。
 
-    截断正态: cv → σ=cv×μ(基线); mu/lo/hi 缺省由组件基线/默认边界补齐。
+    截断正态: cv → σ=cv×μ(基线); 实验分支: mu:<shape>/sigma:<shape> 取槽 t 曲线值;
+    mu/lo/hi 缺省由组件基线/默认边界补齐。
     """
     cfg = comp_cfg.get(name)
     if cfg is None:
@@ -104,10 +110,15 @@ def _make_sampler(comp_cfg: dict, name: str, base_mu, default_lo, default_hi):
     dist, params = cfg
     p = dict(params)
     if dist == "truncated_normal":
-        if "cv" in p:
-            # σ = cv×μ, μ 为 0 时用极小值兜底 (避免 σ=0 使拒绝采样死循环)
-            p["sigma"] = p.pop("cv") * max(base_mu, 1e-6)
-        p.setdefault("mu", base_mu)
+        if shapes is not None:
+            # 实验分支: 从 shape 曲线按槽解析 μ/σ (兼容数字 mu/sigma 与 cv)
+            p["mu"], p["sigma"] = resolve_mu_sigma(cfg, shapes, t, base_mu)
+            p.pop("cv", None)
+        else:
+            if "cv" in p:
+                # σ = cv×μ, μ 为 0 时用极小值兜底 (避免 σ=0 使拒绝采样死循环)
+                p["sigma"] = p.pop("cv") * max(base_mu, 1e-6)
+            p.setdefault("mu", base_mu)
         # lo/hi 一律取调用方默认边界, 配置中的 lo:/hi: 不再起作用
         p["lo"] = default_lo
         p["hi"] = default_hi
@@ -317,15 +328,17 @@ def run_mc(scenario: str, n_samples: int, seed: int, senses: list,
         disp_info = [{"ld": ld, "cur0": ld.base_ratio, "lb0": ld.mult_lb, "ub0": ld.mult_ub}
                      for ld in dispatchable_loads]
 
-        # ---- 逐组件抽样器 (配置优先, 每断面按当前值重建) ----
+        # ---- 逐组件抽样器 (配置优先, 每断面按当前值重建; 实验分支: mu/sigma 取 shape 曲线槽值) ----
         fixed_samplers = [
             _make_sampler(comp_cfg, ld.name, base_mu=ld.p_cur_pu * base_mva,
-                          default_lo=0.0, default_hi=2.0 * ld.p_cur_pu * base_mva)
+                          default_lo=0.0, default_hi=2.0 * ld.p_cur_pu * base_mva,
+                          shapes=network.shapes, t=t)
             for ld in fixed_loads
         ]
         pv_samplers = {
             pv.name: _make_sampler(comp_cfg, pv.name, base_mu=pv.irradiance,
-                                   default_lo=0.0, default_hi=1.0)
+                                   default_lo=0.0, default_hi=1.0,
+                                   shapes=network.shapes, t=t)
             for pv in pv_list
         }
         st_samplers = {}
@@ -333,18 +346,20 @@ def run_mc(scenario: str, n_samples: int, seed: int, senses: list,
             st_samplers[st.name] = _make_sampler(
                 comp_cfg, st.name, base_mu=None,
                 default_lo=st.energy_lb_cur_pu * base_mva,
-                default_hi=st.energy_ub_cur_pu * base_mva)
+                default_hi=st.energy_ub_cur_pu * base_mva,
+                shapes=network.shapes, t=t)
         disp_samplers = {}
         for info in disp_info:
             ld = info["ld"]
-            # 抽样边界由组件 CSV 驱动 (loads.csv 的 mult_lb/mult_ub, 经 apply_slot clamp 后):
-            # cur ∈ [lb, ub]; lb ∈ [0, ub]; ub ∈ [lb, 1]
             disp_samplers[f"{ld.name}_cur"] = _make_sampler(comp_cfg, f"{ld.name}_cur", base_mu=ld.base_ratio,
-                                                            default_lo=ld.mult_lb, default_hi=ld.mult_ub)
+                                                            default_lo=ld.mult_lb, default_hi=ld.mult_ub,
+                                                            shapes=network.shapes, t=t)
             disp_samplers[f"{ld.name}_lb"] = _make_sampler(comp_cfg, f"{ld.name}_lb", base_mu=ld.mult_lb,
-                                                           default_lo=0.0, default_hi=ld.mult_ub)
+                                                           default_lo=0.0, default_hi=ld.mult_ub,
+                                                           shapes=network.shapes, t=t)
             disp_samplers[f"{ld.name}_ub"] = _make_sampler(comp_cfg, f"{ld.name}_ub", base_mu=ld.mult_ub,
-                                                           default_lo=ld.mult_lb, default_hi=1.0)
+                                                           default_lo=ld.mult_lb, default_hi=1.0,
+                                                           shapes=network.shapes, t=t)
 
         for i in range(n_samples):
             # 1) 固定负荷: 配置组件抽样, 未配置组件固定为断面基线 (方案A)

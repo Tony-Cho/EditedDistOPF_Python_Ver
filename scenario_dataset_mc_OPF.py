@@ -43,7 +43,7 @@ import time
 import numpy as np
 
 from load_network import load_network, resolve_model_path
-from sampling import truncated_normal_vec
+from sampling import truncated_normal_vec, resolve_mu_sigma
 from opf_model import build_and_solve_opf
 
 
@@ -144,19 +144,13 @@ def load_mc_config(path: str):
                 if not cell:
                     continue
                 k, _, v = cell.partition(":")
-                params[k.strip()] = float(v.strip())
+                k, v = k.strip(), v.strip()
+                try:
+                    params[k] = float(v)        # 数字参数 (cv:0.10 / sigma:0.05)
+                except ValueError:
+                    params[k] = v               # shape 名 (mu:<曲线> / sigma:<曲线>, 96 点)
             comps[name] = (val, params)
     return global_params, comps
-
-
-def _sigma(cfg, mu):
-    """组件分布配置 → σ (截断正态: sigma 优先, 否则 cv×μ; 其余分布不抽样返回 0)"""
-    dist, params = cfg
-    if dist == "truncated_normal":
-        if "sigma" in params:
-            return params["sigma"]
-        return params.get("cv", 0.0) * max(mu, 1e-6)
-    return 0.0
 
 
 # =====================================================================
@@ -250,8 +244,9 @@ def build_slot_features(feature_names, net, shapes, t, rng, comp_cfg, n):
         elif f.endswith("_ub"):
             name = f[:-3]
             mu = shapes[f].mult[t] if f in shapes else 1.0
-            if f in comp_cfg:                    # 配置 → 抽样
-                ub = truncated_normal_vec(np.full(n, mu), np.full(n, _sigma(comp_cfg[f], mu)),
+            if f in comp_cfg:                    # 配置 → 抽样 (μ/σ 可来自 shape 曲线)
+                mu, sigma = resolve_mu_sigma(comp_cfg[f], shapes, t, mu)
+                ub = truncated_normal_vec(np.full(n, mu), np.full(n, sigma),
                                           np.zeros(n), np.ones(n), rng)
             else:                                # 未配置 → 固定曲线值 (方案A)
                 ub = np.full(n, mu)
@@ -263,7 +258,8 @@ def build_slot_features(feature_names, net, shapes, t, rng, comp_cfg, n):
             hi = ub_saved.get(name)
             hi = hi if hi is not None else np.ones(n)
             if f in comp_cfg:                    # 配置 → 抽样 (截断于 [0, 对应 ub])
-                lb = truncated_normal_vec(np.full(n, mu), np.full(n, _sigma(comp_cfg[f], mu)),
+                mu, sigma = resolve_mu_sigma(comp_cfg[f], shapes, t, mu)
+                lb = truncated_normal_vec(np.full(n, mu), np.full(n, sigma),
                                           np.zeros(n), hi, rng)
             else:                                # 未配置 → 固定曲线值 (方案A)
                 lb = np.full(n, mu)
