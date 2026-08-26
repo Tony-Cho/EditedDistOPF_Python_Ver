@@ -330,8 +330,8 @@ def run_mc(scenario: str, n_samples: int, seed: int, senses: list,
 
         # ---- 逐组件抽样器 (配置优先, 每断面按当前值重建; 实验分支: mu/sigma 取 shape 曲线槽值) ----
         fixed_samplers = [
-            _make_sampler(comp_cfg, ld.name, base_mu=ld.p_cur_pu * base_mva,
-                          default_lo=0.0, default_hi=2.0 * ld.p_cur_pu * base_mva,
+            _make_sampler(comp_cfg, ld.name, base_mu=ld.base_ratio,   # 按曲线单位(挂载比例)抽样
+                          default_lo=0.0, default_hi=2.0 * ld.base_ratio,
                           shapes=network.shapes, t=t)
             for ld in fixed_loads
         ]
@@ -344,9 +344,9 @@ def run_mc(scenario: str, n_samples: int, seed: int, senses: list,
         st_samplers = {}
         for st in network.storages.values():
             st_samplers[st.name] = _make_sampler(
-                comp_cfg, st.name, base_mu=None,
-                default_lo=st.energy_lb_cur_pu * base_mva,
-                default_hi=st.energy_ub_cur_pu * base_mva,
+                comp_cfg, st.name, base_mu=st.energy_ratio,   # 按曲线单位(能量比例)抽样
+                default_lo=st.energy_lb_ratio if st.energy_lb_ratio is not None else 0.1,
+                default_hi=st.energy_ub_ratio if st.energy_ub_ratio is not None else 0.9,
                 shapes=network.shapes, t=t)
         disp_samplers = {}
         for info in disp_info:
@@ -362,15 +362,15 @@ def run_mc(scenario: str, n_samples: int, seed: int, senses: list,
                                                            shapes=network.shapes, t=t)
 
         for i in range(n_samples):
-            # 1) 固定负荷: 配置组件抽样, 未配置组件固定为断面基线 (方案A)
+            # 1) 固定负荷: 配置组件抽样, 未配置组件固定为断面基线 (方案A); 按曲线单位(挂载比例)抽样
             for j, (ld, qr) in enumerate(zip(fixed_loads, ratio_q)):
                 s = fixed_samplers[j]
                 if s is not None:
-                    p = s(rng) / base_mva      # 配置抽样 (MW) → pu
+                    r = s(rng)                          # 抽样值 = 挂载比例 (曲线单位)
                 else:
-                    p = mu_pu[j]               # 未配置: 固定不抽样
-                ld.p_cur_pu = p
-                ld.q_cur_pu = p * qr
+                    r = mu_pu[j] / max(ld.p_pu, 1e-9)   # 未配置: 固定为断面比例
+                ld.p_cur_pu = ld.p_pu * r
+                ld.q_cur_pu = ld.p_cur_pu * qr
 
             # 2) 可调度负荷: 配置组件抽样 (lb ≤ cur ≤ ub), 未配置组件固定为断面基线 (方案A)
             for info in disp_info:
@@ -411,11 +411,15 @@ def run_mc(scenario: str, n_samples: int, seed: int, senses: list,
                 pv.irradiance = irr
                 pv.p_avail_pu = pv.p_max_pu * irr
 
-            # 4) 储能初始状态: 配置组件抽样, 未配置组件固定为曲线能量窗口上限 (方案A)
+            # 4) 储能初始状态: 配置组件抽样, 未配置组件固定为曲线能量窗口上限 (方案A); 按曲线单位(能量比例)抽样
             for st in network.storages.values():
                 s = st_samplers[st.name]
                 if s is not None:
-                    st.energy_init_cur_pu = s(rng) / base_mva
+                    en = s(rng)                          # 抽样值 = 能量比例 (曲线单位)
+                    st.energy_ratio = en
+                    st.energy_ub_cur_pu = st.energy_ub_pu * en
+                    st.energy_lb_cur_pu = st.energy_lb_pu * en
+                    st.energy_init_cur_pu = st.energy_ub_cur_pu   # 初始能量 = 窗口上限
                     # 初始功率: 按 model_storage.csv 出力上限均匀抽样 p ∈ [-P_dis_max, +P_ch_max]
                     st.p_init_cur_pu = rng.uniform(-st.discharge_ub_pu, st.charge_ub_pu)
                 else:
