@@ -1,0 +1,2 @@
+name,bus,kw,kwh,state_of_charge,pct_charge,pct_discharge,charge_eff,discharge_eff,pf,shape,npts,interval,energy_lb_ratio,energy_ub_ratio,enabled
+BESS_Bus18,bus18,2500,5000,0.5,100,100,0.95,0.95,0.95,BESS_Bus18_en,96,0.25,0.1,0.9,true

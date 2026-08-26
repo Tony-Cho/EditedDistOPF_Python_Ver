@@ -1,0 +1,22 @@
+! ===========================================================
+! 额外固定负荷（不可调度，z=1）
+! 用于在关键位置增加负荷以制造可控的电压瓶颈
+! 
+! 位置设计逻辑 (Max-B 电压下限绑定场景):
+!   Fixed_Bus8(bus8): 瓶颈后中段固定负荷
+!   Fixed_Bus18(bus18): 末端大负荷(600kW)，拉低末端电压至 V_min
+!   Fixed_Bus30(bus30): 支路末端大负荷(400kW)，制造低压点
+!   Fixed_Bus33(bus33): 末端分支负荷
+! ===========================================================
+
+! bus8: 瓶颈后中段固定负荷 (原有 Load7=200kW, 合计 400kW, PF=0.95)
+New Load.Fixed_Bus8 phases=3 bus1=bus8.1.2.3 conn=wye kv=12.66 kw=200 kvar=66 model=1 status=variable
+
+! bus18: 末端大负荷 (原 Load17=90kW, 合计 690kW, PF=0.95)
+New Load.Fixed_Bus18 phases=3 bus1=bus18.1.2.3 conn=wye kv=12.66 kw=600 kvar=198 model=1 status=variable
+
+! bus30: 支路末端大负荷 (原 Load29=200kW, 合计 600kW, PF=0.95)
+New Load.Fixed_Bus30 phases=3 bus1=bus30.1.2.3 conn=wye kv=12.66 kw=400 kvar=132 model=1 status=variable
+
+! bus33: 末端分支负荷 (原 Load32=60kW, 合计 160kW, PF=0.95)
+New Load.Fixed_Bus33 phases=3 bus1=bus33.1.2.3 conn=wye kv=12.66 kw=100 kvar=33 model=1 status=variable

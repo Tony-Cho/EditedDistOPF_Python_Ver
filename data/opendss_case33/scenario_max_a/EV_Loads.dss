@@ -1,0 +1,11 @@
+! ===========================================================
+! Electric Vehicle Chargers
+! ===========================================================
+
+! 电动汽车充电桩（可控负荷）
+! 瓶颈前(不上L2_2_3): EV1(bus19,200kW), EV2(bus20,200kW)
+! 瓶颈后(上L2_2_3): EV3(bus7,200kW), EV4(bus9,150kW)
+New Load.EV1 phases=3 bus1=bus19.1.2.3 conn=wye kv=12.66 kw=200 kvar=50 model=1 status=variable
+New Load.EV2 phases=3 bus1=bus20.1.2.3 conn=wye kv=12.66 kw=200 kvar=50 model=1 status=variable
+New Load.EV3 phases=3 bus1=bus7.1.2.3 conn=wye kv=12.66 kw=200 kvar=50 model=1 status=variable
+New Load.EV4 phases=3 bus1=bus9.1.2.3 conn=wye kv=12.66 kw=150 kvar=50 model=1 status=variable

@@ -1,0 +1,2 @@
+name,slack_bus,base_kv,phases,frequency,base_mva,pv_enabled,storage_enabled,ev_enabled,flexible_enabled,capacitor_enabled
+case33bw_default,bus1,12.66,3,50.0,10.0,true,true,true,true,false

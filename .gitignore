@@ -14,6 +14,12 @@ venv/
 # Training data
 training_dataset/
 
+# Generated artifacts (可再生产物, 不入版本库)
+dataset/
+output/
+knn_lib/
+scenario/
+
 # IDE
 .vscode/
 .idea/

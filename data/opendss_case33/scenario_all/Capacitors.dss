@@ -1,0 +1,12 @@
+! ===========================================================
+! 并联电容器组 - 无功补偿
+! 用于电压支撑，标准电压范围: 0.93 ~ 1.07 pu (GB/T 12325-2008)
+! ===========================================================
+
+! 末端馈线电压支撑
+New Capacitor.Cap_Bus18 phases=3 bus1=bus18.1.2.3 conn=wye kv=12.66 kvar=300
+New Capacitor.Cap_Bus30 phases=3 bus1=bus30.1.2.3 conn=wye kv=12.66 kvar=500
+New Capacitor.Cap_Bus22 phases=3 bus1=bus22.1.2.3 conn=wye kv=12.66 kvar=300
+
+! 中间节点电压支撑
+New Capacitor.Cap_Bus6  phases=3 bus1=bus6.1.2.3  conn=wye kv=12.66 kvar=200

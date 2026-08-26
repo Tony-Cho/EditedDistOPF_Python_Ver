@@ -1,0 +1,6 @@
+name,bus,pmpp_kw,kw,pf,irradiance,shape,npts,interval,enabled
+PV_Bus6,bus6,300,300,0.98,1,PV_Bus6_irr,96,0.25,TRUE
+PV_Bus14,bus14,400,400,0.98,1,PV_Bus14_irr,96,0.25,TRUE
+PV_Bus19,bus19,300,300,0.98,1,PV_Bus19_irr,96,0.25,TRUE
+PV_Bus25,bus25,300,300,0.98,1,PV_Bus25_irr,96,0.25,TRUE
+PV_Bus31,bus31,400,400,0.98,1,PV_Bus31_irr,96,0.25,TRUE

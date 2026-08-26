@@ -1,0 +1,53 @@
+! ===========================================================
+! Lines (with normamps — 基于 R 反推导线截面)
+! ===========================================================
+! normamps 映射规则 (配电网典型 ACSR 导线):
+!   R < 0.15Ω → 420A (ACSR-240/40, 主干线)
+!   0.15 ≤ R < 0.25 → 360A (ACSR-185/30)
+!   0.25 ≤ R < 0.40 → 280A (ACSR-120/20)
+!   0.40 ≤ R < 0.65 → 240A (ACSR-95/15)
+!   0.65 ≤ R < 0.90 → 200A (ACSR-70/12)
+!   0.90 ≤ R < 1.20 → 160A (ACSR-50/8)
+!   R ≥ 1.20 → 130A (ACSR-#6, 末端分支)
+! ===========================================================
+
+New Line.L1_1_2 phases=3 bus1=bus1.1.2.3 bus2=bus2.1.2.3 r1=0.09220000 x1=0.04700000 r0=0.09220000 x0=0.04700000 c1=0 c0=0 length=1 units=km enabled=yes normamps=420
+! 注意: L2_2_3 为该网络中的瓶颈段 (190A 适度降容, 使 EV 温和削减 z≈0.7~0.9)
+New Line.L2_2_3 phases=3 bus1=bus2.1.2.3 bus2=bus3.1.2.3 r1=0.49300000 x1=0.25110000 r0=0.49300000 x0=0.25110000 c1=0 c0=0 length=1 units=km enabled=yes normamps=190
+New Line.L3_3_4 phases=3 bus1=bus3.1.2.3 bus2=bus4.1.2.3 r1=0.36600000 x1=0.18640000 r0=0.36600000 x0=0.18640000 c1=0 c0=0 length=1 units=km enabled=yes normamps=280
+New Line.L4_4_5 phases=3 bus1=bus4.1.2.3 bus2=bus5.1.2.3 r1=0.38110000 x1=0.19410000 r0=0.38110000 x0=0.19410000 c1=0 c0=0 length=1 units=km enabled=yes normamps=280
+New Line.L5_5_6 phases=3 bus1=bus5.1.2.3 bus2=bus6.1.2.3 r1=0.81900000 x1=0.70700000 r0=0.81900000 x0=0.70700000 c1=0 c0=0 length=1 units=km enabled=yes normamps=200
+New Line.L6_6_7 phases=3 bus1=bus6.1.2.3 bus2=bus7.1.2.3 r1=0.18720000 x1=0.61880000 r0=0.18720000 x0=0.61880000 c1=0 c0=0 length=1 units=km enabled=yes normamps=360
+New Line.L7_7_8 phases=3 bus1=bus7.1.2.3 bus2=bus8.1.2.3 r1=0.71140000 x1=0.23510000 r0=0.71140000 x0=0.23510000 c1=0 c0=0 length=1 units=km enabled=yes normamps=200
+New Line.L8_8_9 phases=3 bus1=bus8.1.2.3 bus2=bus9.1.2.3 r1=1.03000000 x1=0.74000000 r0=1.03000000 x0=0.74000000 c1=0 c0=0 length=1 units=km enabled=yes normamps=160
+New Line.L9_9_10 phases=3 bus1=bus9.1.2.3 bus2=bus10.1.2.3 r1=1.04400000 x1=0.74000000 r0=1.04400000 x0=0.74000000 c1=0 c0=0 length=1 units=km enabled=yes normamps=160
+New Line.L10_10_11 phases=3 bus1=bus10.1.2.3 bus2=bus11.1.2.3 r1=0.19660000 x1=0.06500000 r0=0.19660000 x0=0.06500000 c1=0 c0=0 length=1 units=km enabled=yes normamps=360
+New Line.L11_11_12 phases=3 bus1=bus11.1.2.3 bus2=bus12.1.2.3 r1=0.37440000 x1=0.12380000 r0=0.37440000 x0=0.12380000 c1=0 c0=0 length=1 units=km enabled=yes normamps=280
+New Line.L12_12_13 phases=3 bus1=bus12.1.2.3 bus2=bus13.1.2.3 r1=1.46800000 x1=1.15500000 r0=1.46800000 x0=1.15500000 c1=0 c0=0 length=1 units=km enabled=yes normamps=130
+New Line.L13_13_14 phases=3 bus1=bus13.1.2.3 bus2=bus14.1.2.3 r1=0.54160000 x1=0.71290000 r0=0.54160000 x0=0.71290000 c1=0 c0=0 length=1 units=km enabled=yes normamps=240
+New Line.L14_14_15 phases=3 bus1=bus14.1.2.3 bus2=bus15.1.2.3 r1=0.59100000 x1=0.52600000 r0=0.59100000 x0=0.52600000 c1=0 c0=0 length=1 units=km enabled=yes normamps=240
+New Line.L15_15_16 phases=3 bus1=bus15.1.2.3 bus2=bus16.1.2.3 r1=0.74630000 x1=0.54500000 r0=0.74630000 x0=0.54500000 c1=0 c0=0 length=1 units=km enabled=yes normamps=200
+New Line.L16_16_17 phases=3 bus1=bus16.1.2.3 bus2=bus17.1.2.3 r1=1.28900000 x1=1.72100000 r0=1.28900000 x0=1.72100000 c1=0 c0=0 length=1 units=km enabled=yes normamps=130
+New Line.L17_17_18 phases=3 bus1=bus17.1.2.3 bus2=bus18.1.2.3 r1=0.73200000 x1=0.57400000 r0=0.73200000 x0=0.57400000 c1=0 c0=0 length=1 units=km enabled=yes normamps=200
+New Line.L18_2_19 phases=3 bus1=bus2.1.2.3 bus2=bus19.1.2.3 r1=0.16400000 x1=0.15650000 r0=0.16400000 x0=0.15650000 c1=0 c0=0 length=1 units=km enabled=yes normamps=360
+New Line.L19_19_20 phases=3 bus1=bus19.1.2.3 bus2=bus20.1.2.3 r1=1.50420000 x1=1.35540000 r0=1.50420000 x0=1.35540000 c1=0 c0=0 length=1 units=km enabled=yes normamps=130
+New Line.L20_20_21 phases=3 bus1=bus20.1.2.3 bus2=bus21.1.2.3 r1=0.40950000 x1=0.47840000 r0=0.40950000 x0=0.47840000 c1=0 c0=0 length=1 units=km enabled=yes normamps=240
+New Line.L21_21_22 phases=3 bus1=bus21.1.2.3 bus2=bus22.1.2.3 r1=0.70890000 x1=0.93730000 r0=0.70890000 x0=0.93730000 c1=0 c0=0 length=1 units=km enabled=yes normamps=200
+New Line.L22_3_23 phases=3 bus1=bus3.1.2.3 bus2=bus23.1.2.3 r1=0.45120000 x1=0.30830000 r0=0.45120000 x0=0.30830000 c1=0 c0=0 length=1 units=km enabled=yes normamps=240
+New Line.L23_23_24 phases=3 bus1=bus23.1.2.3 bus2=bus24.1.2.3 r1=0.89800000 x1=0.70910000 r0=0.89800000 x0=0.70910000 c1=0 c0=0 length=1 units=km enabled=yes normamps=200
+New Line.L24_24_25 phases=3 bus1=bus24.1.2.3 bus2=bus25.1.2.3 r1=0.89600000 x1=0.70110000 r0=0.89600000 x0=0.70110000 c1=0 c0=0 length=1 units=km enabled=yes normamps=200
+New Line.L25_6_26 phases=3 bus1=bus6.1.2.3 bus2=bus26.1.2.3 r1=0.20300000 x1=0.10340000 r0=0.20300000 x0=0.10340000 c1=0 c0=0 length=1 units=km enabled=yes normamps=360
+New Line.L26_26_27 phases=3 bus1=bus26.1.2.3 bus2=bus27.1.2.3 r1=0.28420000 x1=0.14470000 r0=0.28420000 x0=0.14470000 c1=0 c0=0 length=1 units=km enabled=yes normamps=280
+New Line.L27_27_28 phases=3 bus1=bus27.1.2.3 bus2=bus28.1.2.3 r1=1.05900000 x1=0.93370000 r0=1.05900000 x0=0.93370000 c1=0 c0=0 length=1 units=km enabled=yes normamps=160
+New Line.L28_28_29 phases=3 bus1=bus28.1.2.3 bus2=bus29.1.2.3 r1=0.80420000 x1=0.70060000 r0=0.80420000 x0=0.70060000 c1=0 c0=0 length=1 units=km enabled=yes normamps=200
+New Line.L29_29_30 phases=3 bus1=bus29.1.2.3 bus2=bus30.1.2.3 r1=0.50750000 x1=0.25850000 r0=0.50750000 x0=0.25850000 c1=0 c0=0 length=1 units=km enabled=yes normamps=240
+New Line.L30_30_31 phases=3 bus1=bus30.1.2.3 bus2=bus31.1.2.3 r1=0.97440000 x1=0.96300000 r0=0.97440000 x0=0.96300000 c1=0 c0=0 length=1 units=km enabled=yes normamps=160
+New Line.L31_31_32 phases=3 bus1=bus31.1.2.3 bus2=bus32.1.2.3 r1=0.31050000 x1=0.36190000 r0=0.31050000 x0=0.36190000 c1=0 c0=0 length=1 units=km enabled=yes normamps=280
+New Line.L32_32_33 phases=3 bus1=bus32.1.2.3 bus2=bus33.1.2.3 r1=0.34100000 x1=0.53020000 r0=0.34100000 x0=0.53020000 c1=0 c0=0 length=1 units=km enabled=yes normamps=280
+
+! 联络开关 (保持不变, 不设 normamps)
+New Line.L33_21_8 phases=3 bus1=bus21.1.2.3 bus2=bus8.1.2.3 r1=2.00000000 x1=2.00000000 r0=2.00000000 x0=2.00000000 c1=0 c0=0 length=1 units=km switch=yes enabled=no
+New Line.L34_9_15 phases=3 bus1=bus9.1.2.3 bus2=bus15.1.2.3 r1=2.00000000 x1=2.00000000 r0=2.00000000 x0=2.00000000 c1=0 c0=0 length=1 units=km switch=yes enabled=no
+New Line.L35_12_22 phases=3 bus1=bus12.1.2.3 bus2=bus22.1.2.3 r1=2.00000000 x1=2.00000000 r0=2.00000000 x0=2.00000000 c1=0 c0=0 length=1 units=km switch=yes enabled=no
+New Line.L36_18_33 phases=3 bus1=bus18.1.2.3 bus2=bus33.1.2.3 r1=0.50000000 x1=0.50000000 r0=0.50000000 x0=0.50000000 c1=0 c0=0 length=1 units=km switch=yes enabled=no
+New Line.L37_25_29 phases=3 bus1=bus25.1.2.3 bus2=bus29.1.2.3 r1=0.50000000 x1=0.50000000 r0=0.50000000 x0=0.50000000 c1=0 c0=0 length=1 units=km switch=yes enabled=no

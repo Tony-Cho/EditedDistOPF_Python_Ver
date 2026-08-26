@@ -1,0 +1,5 @@
+name,bus,kvar,kv,enabled
+Cap_Bus18,bus18,300.0,12.66,false
+Cap_Bus30,bus30,500.0,12.66,false
+Cap_Bus22,bus22,300.0,12.66,false
+Cap_Bus6,bus6,200.0,12.66,false

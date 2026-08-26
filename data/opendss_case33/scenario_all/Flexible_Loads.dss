@@ -1,0 +1,7 @@
+! ===========================================================
+! Smart Building HVAC (Flexible Loads)
+! ===========================================================
+
+! 智慧楼宇空调（可调负荷）
+New Load.AC_Bus8 phases=3 bus1=bus8.1.2.3 conn=wye kv=12.66 kw=200 kvar=100 model=1 status=variable
+New Load.AC_Bus14 phases=3 bus1=bus14.1.2.3 conn=wye kv=12.66 kw=150 kvar=75 model=1 status=variable

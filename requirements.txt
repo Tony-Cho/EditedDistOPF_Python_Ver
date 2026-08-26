@@ -1,0 +1,6 @@
+# Python 重构版 IEEE 33 VPP OPF 依赖
+# 虚拟环境: venv/
+# Python: 3.13+
+gurobipy>=13.0
+numpy>=2.0
+scikit-learn>=1.6

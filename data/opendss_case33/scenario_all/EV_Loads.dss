@@ -1,0 +1,10 @@
+! ===========================================================
+! Electric Vehicle Chargers
+! ===========================================================
+
+! 电动汽车充电桩（可控负荷）
+! 电压分支(不走L2_2_3): EV_Bus19(bus19,200kW), EV_Bus20(bus20,200kW) — Max z=1拉低电压→PV发功
+! 热极限分支(走L2_2_3): EV_Bus7(bus7,600kW) — bus7经L6_6_7(360A), 受L2_2_3瓶颈约束
+New Load.EV_Bus19 phases=3 bus1=bus19.1.2.3 conn=wye kv=12.66 kw=200 kvar=50 model=1 status=variable
+New Load.EV_Bus20 phases=3 bus1=bus20.1.2.3 conn=wye kv=12.66 kw=200 kvar=50 model=1 status=variable
+New Load.EV_Bus7 phases=3 bus1=bus7.1.2.3 conn=wye kv=12.66 kw=600 kvar=150 model=1 status=variable

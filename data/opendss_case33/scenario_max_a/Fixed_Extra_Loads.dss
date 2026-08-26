@@ -1,0 +1,16 @@
+! ===========================================================
+! 额外固定负荷（不可调度，z=1）
+! 用于在关键位置增加负荷以制造可控的线路瓶颈
+! 
+! 位置设计逻辑:
+!   Fixed_Bus8(bus8): 位于 L2_2_3 瓶颈后、末端 PV(bus18) 前
+!     - Max 场景: z=1 → 增加 L2_2_3 流量 → 热极限更易绑定
+!     - Min 场景: z=1 但位于中间而非末端 → 不拦截 PV_Bus18 反送 → 末端电压抬升更显著
+!   Fixed_Bus33(bus33): 末端分支固定负荷
+! ===========================================================
+
+! bus8: 瓶颈后中段固定负荷 (原有 Load7=200kW, 合计 400kW, PF=0.95)
+New Load.Fixed_Bus8 phases=3 bus1=bus8.1.2.3 conn=wye kv=12.66 kw=200 kvar=66 model=1 status=variable
+
+! bus33: 末端分支负荷 (原 Load32=60kW, 合计 160kW, PF=0.95)
+New Load.Fixed_Bus33 phases=3 bus1=bus33.1.2.3 conn=wye kv=12.66 kw=100 kvar=33 model=1 status=variable

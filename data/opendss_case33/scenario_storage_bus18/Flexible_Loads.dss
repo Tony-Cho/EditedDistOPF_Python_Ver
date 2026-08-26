@@ -1,0 +1,16 @@
+! ===========================================================
+! Smart Building HVAC (Flexible Loads)
+! ===========================================================
+
+! 智慧楼宇空调（可调负荷）
+! 官方语义: Load 实际功率 = kw × LoadShape.mult
+! kw 为满载容量; 绑定的 LoadShape.mult 为当前实际挂载比例
+! AC_Bus2 满载 200kW, 当前挂载 100kW → mult=(0.5)
+! 可调范围 [0.1, 1.0] (配置于 parse_dss.py LOAD_MULT_LIMITS):
+!   z ∈ [0.1/0.5, 1/0.5] = [0.2, 2] → 可削减至满载 10%, 可增荷至满载
+
+! 当前挂载比例 (npts=1 静态断面, 单断面只取 mult[0])
+New LoadShape.AC_Bus2_cur npts=1 interval=1 mult=(0.5)
+
+New Load.AC_Bus2 phases=3 bus1=bus2.1.2.3 conn=wye kv=12.66 kw=200 kvar=100 model=1 status=variable
+~ daily=AC_Bus2_cur
