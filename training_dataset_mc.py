@@ -268,15 +268,19 @@ def _loss_pct(result):
 # =====================================================================
 
 def run_mc(scenario: str, n_samples: int, seed: int, senses: list,
-           comp_cfg: dict = None, start_time: str = "0:00", end_time: str = "23:45"):
+           comp_cfg: dict = None, model: str = None,
+           start_time: str = "0:00", end_time: str = "23:45"):
     """对指定场景执行多时段蒙特卡洛抽样并统计 OPF 结果分布 (可同时 min/max)
+
+    scenario: 场景名 (输出目录 training_dataset/training_dataset_{scenario}/)
+    model:    网络模型目录名 (data/csv_case33/{model}/); 缺省用 scenario 名。
 
     comp_cfg: {组件名: (分布名, 参数字典)}; 每个抽样量在配置行内单独设置分布参数
               (如 cv:0.10), 未列出的组件固定为断面基线 (方案A: 配置即抽样, 未配置即固定)。
     start_time/end_time: 抽样断面范围 ('H:MM', 15min 步进, 含端点), 默认 0:00 ~ 23:45。
     """
     comp_cfg = comp_cfg or {}
-    model_path = resolve_model_path(scenario)   # CSV 场景目录优先, DSS 退回
+    model_path = resolve_model_path(model or scenario)   # CSV 场景目录优先, DSS 退回
     print(f"\n加载基线场景: {model_path}")
     network = load_network(model_path)
 
@@ -554,17 +558,20 @@ def main():
         print(f"读取全局控制: {cfg_path} "
               f"(全局参数 {len(cfg_global)} 项, 组件配置 {len(comp_cfg)} 个)")
 
-    # CLI 覆盖配置: 输入模型名 (model 键, 兼容旧键 scenario)
-    scenario = args.scenario or cfg_global.get("model") or cfg_global.get("scenario")
+    # 场景名与网络模型分离:
+    #   scenario 键 = 场景名 (输出 training_dataset/training_dataset_{scenario}/, 如 default);
+    #   model 键    = 网络模型目录名 (data/csv_case33/{model}/, 如 model_default)。
+    scenario = args.scenario or cfg_global.get("scenario") or cfg_global.get("model")
     if not scenario:
         raise ValueError("未指定模型/场景: 请在命令行传模型名或配置文件提供 model")
+    model = cfg_global.get("model") or scenario
     n_samples = args.n if args.n is not None else int(cfg_global.get("n_samples", 500))
     seed = args.seed if args.seed is not None else int(cfg_global.get("seed", 42))
     start_time = cfg_global.get("start_time", "0:00")
     end_time = cfg_global.get("end_time", "23:45")
     senses = ["min", "max"] if args.sense == "both" else [args.sense]
 
-    run_mc(scenario, n_samples, seed, senses, comp_cfg,
+    run_mc(scenario, n_samples, seed, senses, comp_cfg, model=model,
            start_time=start_time, end_time=end_time)
 
 
