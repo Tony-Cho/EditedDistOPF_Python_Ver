@@ -1,0 +1,20 @@
+[
+ "p_sub_mw",
+ "q_sub_mvar",
+ "BESS_Bus18_p_net_mw",
+ "BESS_Bus18_q_mvar",
+ "BESS_Bus18_se_mwh",
+ "PV_Bus6_p_out_mw",
+ "PV_Bus14_p_out_mw",
+ "PV_Bus19_p_out_mw",
+ "PV_Bus25_p_out_mw",
+ "PV_Bus31_p_out_mw",
+ "PV_Bus6_q_out_mvar",
+ "PV_Bus14_q_out_mvar",
+ "PV_Bus19_q_out_mvar",
+ "PV_Bus25_q_out_mvar",
+ "PV_Bus31_q_out_mvar",
+ "EV_Bus19_p_out_mw",
+ "EV_Bus7_p_out_mw",
+ "AC_Bus2_p_out_mw"
+]

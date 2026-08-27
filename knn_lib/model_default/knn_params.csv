@@ -1,0 +1,3 @@
+sense,k,weights,metric,p,algorithm,leaf_size,n_jobs,test_size,seed,n_train,n_test,n_features,n_targets,data_csv
+max,5,distance,minkowski,2,auto,30,,0.2,42,9216,2304,45,18,dataset/model_default/train
+min,5,distance,minkowski,2,auto,30,,0.2,42,9216,2304,45,18,dataset/model_default/train
