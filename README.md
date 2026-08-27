@@ -389,7 +389,7 @@ $$ S_{ij,\max} = \frac{\sqrt{3}\, V_{\text{base}}\, I_{\text{rated}}}{S_{\text{b
 
 3. 否则按阻抗反比例分配热限额。先计算所有启用线路的平均阻抗模值 $z_{\text{avg}} = \frac{1}{|\mathcal{E}|}\sum_{(i,j)\in\mathcal{E}}\sqrt{(r_{ij}^{\text{pu}})^2+(x_{ij}^{\text{pu}})^2}$，再：
 
-$$ S_{ij,\max} = \operatorname{clamp}\!\left(2\cdot\frac{z_{\text{avg}}}{\max(z_{ij}^{\text{pu}},\,0.001)},\ 0.3,\ 2.5\right) \cdot P_{\text{load}}^{\text{total}} $$
+$$ S_{ij,\max} = \max\!\left(0.3,\ \min\!\left(2.5,\ 2\cdot\frac{z_{\text{avg}}}{\max(z_{ij}^{\text{pu}},\,0.001)}\right)\right) \cdot P_{\text{load}}^{\text{total}} $$
 
 其中 $P_{\text{load}}^{\text{total}}$ 为全网总有功负荷（pu）。含义：**阻抗越小（越靠近变电站），线路分配到的热限额越大**。
 

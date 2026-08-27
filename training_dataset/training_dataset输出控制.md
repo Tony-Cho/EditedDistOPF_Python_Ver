@@ -260,19 +260,18 @@ training_dataset/training_dataset_{scenario}/
 
 示例（默认算例 training\_dataset\_default 实际配置，节选）：
 
-```csv
-name,value,
-model,model_default,
-scenario,default,
-n_samples,200,
-seed,42,
-start_time,0:00,
-end_time,23:45,
-Load1,truncated_normal,mu:Load1_cur_mu,sigma:Load1_cur_sigma,
-PV_Bus6,truncated_normal,mu:PV_Bus6_irr_mu,sigma:PV_Bus6_irr_sigma,
-BESS_Bus18,truncated_normal,mu:BESS_Bus18_en_mu,sigma:BESS_Bus18_en_sigma,
-EV_Bus19_cur,truncated_normal,mu:EV_Bus19_cur_mu,sigma:EV_Bus19_cur_sigma,
-```
+| name | value | 参数列 1 | 参数列 2 |
+| --- | --- | --- | --- |
+| model | model\_default | - | - |
+| scenario | default | - | - |
+| n\_samples | 200 | - | - |
+| seed | 42 | - | - |
+| start\_time | 0:00 | - | - |
+| end\_time | 23:45 | - | - |
+| Load1 | truncated\_normal | mu:Load1\_cur\_mu | sigma:Load1\_cur\_sigma |
+| PV\_Bus6 | truncated\_normal | mu:PV\_Bus6\_irr\_mu | sigma:PV\_Bus6\_irr\_sigma |
+| BESS\_Bus18 | truncated\_normal | mu:BESS\_Bus18\_en\_mu | sigma:BESS\_Bus18\_en\_sigma |
+| EV\_Bus19\_cur | truncated\_normal | mu:EV\_Bus19\_cur\_mu | sigma:EV\_Bus19\_cur\_sigma |
 
 - 未在配置表中列出的组件：**固定为断面基线，不抽样（方案 A：配置即抽样，未配置即固定）**。
 - mu/sigma 曲线名指向模型 `model_shapes.csv` 的曲线（94 条 = 47 变量 × mu/sigma，由 `history/history_60_days_sample.csv` 60 天历史数据提取）。
