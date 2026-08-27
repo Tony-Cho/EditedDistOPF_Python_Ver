@@ -14,7 +14,7 @@ training_dataset_mc.py — 训练集蒙特卡洛抽样 (负荷抽样 + OPF 求�
   python training_dataset_mc.py --config training_dataset_mc_config.csv
   python training_dataset_mc.py model_x --config training_dataset_mc_config.csv --n 200   # CLI 覆盖配置
 
-输出 (格式见 training_dataset/输出控制.md 第二部分, 输出根目录 training_dataset/training_dataset_{model}_sample/):
+输出 (格式见 training_dataset/输出控制.md 第二部分, 输出根目录 training_dataset/training_dataset_{model}/):
   - logs/{编号}_{model}.txt   每样本一个 txt 日志
   - training_dataset_sample.csv                   抽样场景表 (每样本一行)
   - system/buses/lines/loads/pvs/storage.csv   组件结果表
@@ -299,9 +299,9 @@ def run_mc(scenario: str, n_samples: int, seed: int, senses: list,
     sense_label = {s: ("最小化根节点注入" if s == "min" else "最大化根节点注入") for s in senses}
     print(f"  蒙特卡洛抽样: 种子={seed}, senses={senses}")
 
-    # 输出目录: training_dataset/training_dataset_{scenario}_sample/
+    # 输出目录: training_dataset/training_dataset_{scenario}/
     # (清空 csv/ 与 logs/ 子目录, 保留场景根如 training_dataset_mc_config.csv)
-    out_dir = os.path.join("training_dataset", f"training_dataset_{scenario}_sample")
+    out_dir = os.path.join("training_dataset", f"training_dataset_{scenario}")
     csv_dir = os.path.join(out_dir, "csv")
     logs_dir = os.path.join(out_dir, "logs")
     shutil.rmtree(csv_dir, ignore_errors=True)
@@ -542,11 +542,11 @@ def main():
                         help="目标函数方向 (默认 both)")
     args = parser.parse_args()
 
-    # 读取全局控制 CSV: --config 显式指定, 否则默认 training_dataset/training_dataset_{scenario}_sample/training_dataset_mc_config.csv
+    # 读取全局控制 CSV: --config 显式指定, 否则默认 training_dataset/training_dataset_{scenario}/training_dataset_mc_config.csv
     cfg_global, comp_cfg = {}, {}
     cfg_path = args.config
     if cfg_path is None and args.scenario:
-        default_cfg = os.path.join("training_dataset", f"training_dataset_{args.scenario}_sample", "training_dataset_mc_config.csv")
+        default_cfg = os.path.join("training_dataset", f"training_dataset_{args.scenario}", "training_dataset_mc_config.csv")
         if os.path.exists(default_cfg):
             cfg_path = default_cfg
     if cfg_path:
