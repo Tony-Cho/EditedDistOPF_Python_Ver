@@ -48,20 +48,19 @@ knn_lib/training_dataset_default/
 
 ### 1.1 模型训练参数（knn_config.csv，读入）
 
-放在 `knn_lib/{训练集文件夹名}/knn_config.csv`（KNN 参数已从 training_dataset 的 output_mc_config.csv 统一挪入），`name,value` 两列，train_knn.py 训练时读取：
+放在 `knn_lib/{训练集文件夹名}/knn_config.csv`（KNN 参数已从 training_dataset 的 output_mc_config.csv 统一挪入），`name,value` 两列，train_knn.py 训练时读取。示例：
 
-```csv
-name,value
-knn_k,5
-knn_weights,distance
-knn_test_size,0.2
-knn_seed,42
-knn_metric,
-knn_p,
-knn_algorithm,
-knn_leaf_size,
-knn_n_jobs,
-```
+| name | value |
+|---|---|
+| knn\_k | 5 |
+| knn\_weights | distance |
+| knn\_test\_size | 0.2 |
+| knn\_seed | 42 |
+| knn\_metric |  |
+| knn\_p |  |
+| knn\_algorithm |  |
+| knn\_leaf\_size |  |
+| knn\_n\_jobs |  |
 
 - 键含义与可选值见 [修改进度7.md](修改进度7.md) 第 5 节；留空 = sklearn 默认；
 - 优先级：CLI（`--k/--weights/--test-size/--seed`） > knn_config.csv 非空值 > 内置默认值；
@@ -192,23 +191,22 @@ output/output_scenario_default/
 
 ### 1.1 场景预测配置（output_mc_config.csv，读入）
 
-放在 `output/{场景名}/output_mc_config.csv`，**结构与 training_dataset 下的 training_dataset_mc_config.csv 一致**（全局运行参数 + 组件分布，抽样参数在组件行内单独设置），额外多一个 `model` 键索引模型库。由 `--config` 显式指定，或自动查找（顺序：`--scenario` 目录 → 默认算例 `output_scenario_default` → output/ 下唯一一份配置；多份且无 `--scenario` 时必须 `--config`）：
+放在 `output/{场景名}/output_mc_config.csv`，**结构与 training_dataset 下的 training_dataset_mc_config.csv 一致**（全局运行参数 + 组件分布，抽样参数在组件行内单独设置），额外多一个 `model` 键索引模型库。由 `--config` 显式指定，或自动查找（顺序：`--scenario` 目录 → 默认算例 `output_scenario_default` → output/ 下唯一一份配置；多份且无 `--scenario` 时必须 `--config`）。示例（默认场景实际配置）：
 
-```csv
-name,value
-model,training_dataset_default     # 模型名 = 训练集文件夹名 (索引 knn_lib/{model}/)
-scenario,output_scenario_default   # 场景名 (scenario/{scenario}/ 或去除 output_ 前缀回退)
-n_samples,200
-seed,42
-start_time,0:00
-end_time,23:45
-EV_Bus19_lb,truncated_normal,mu:EV_Bus19_lb_mu,sigma:EV_Bus19_lb_sigma
-EV_Bus19_ub,truncated_normal,mu:EV_Bus19_ub_mu,sigma:EV_Bus19_ub_sigma
-EV_Bus7_lb,truncated_normal,mu:EV_Bus7_lb_mu,sigma:EV_Bus7_lb_sigma
-EV_Bus7_ub,truncated_normal,mu:EV_Bus7_ub_mu,sigma:EV_Bus7_ub_sigma
-AC_Bus2_lb,truncated_normal,mu:AC_Bus2_lb_mu,sigma:AC_Bus2_lb_sigma
-AC_Bus2_ub,truncated_normal,mu:AC_Bus2_ub_mu,sigma:AC_Bus2_ub_sigma
-```
+| name | value | 参数列 1 | 参数列 2 | 备注 |
+|---|---|---|---|---|
+| model | training\_dataset\_default | - | - | 模型名 = 训练集文件夹名（索引 knn\_lib/{model}/） |
+| scenario | output\_scenario\_default | - | - | 场景名（scenario/{scenario}/ 或去除 output\_ 前缀回退） |
+| n\_samples | 200 | - | - | - |
+| seed | 42 | - | - | - |
+| start\_time | 0:00 | - | - | - |
+| end\_time | 23:45 | - | - | - |
+| EV\_Bus19\_lb | truncated\_normal | mu:EV\_Bus19\_lb\_mu | sigma:EV\_Bus19\_lb\_sigma | - |
+| EV\_Bus19\_ub | truncated\_normal | mu:EV\_Bus19\_ub\_mu | sigma:EV\_Bus19\_ub\_sigma | - |
+| EV\_Bus7\_lb | truncated\_normal | mu:EV\_Bus7\_lb\_mu | sigma:EV\_Bus7\_lb\_sigma | - |
+| EV\_Bus7\_ub | truncated\_normal | mu:EV\_Bus7\_ub\_mu | sigma:EV\_Bus7\_ub\_sigma | - |
+| AC\_Bus2\_lb | truncated\_normal | mu:AC\_Bus2\_lb\_mu | sigma:AC\_Bus2\_lb\_sigma | - |
+| AC\_Bus2\_ub | truncated\_normal | mu:AC\_Bus2\_ub\_mu | sigma:AC\_Bus2\_ub\_sigma | - |
 
 - 全局键：`model`（模型索引）/ `scenario`（场景名）/ `n_samples` / `seed` / `start_time` / `end_time`；
 - 组件分布：EV/AC 的 `lb/ub` 等抽样量单独设置分布参数——`mu:曲线名`/`sigma:曲线名` 逐断面取场景 shapes 曲线的 μ 与 σ（默认算例写法），或 `cv:数值` 常数方式（σ=cv×μ，兼容旧配置）；**未配置的抽样量固定为曲线值（方案A）**——预测场景默认只配置 EV/AC 的 lb/ub；
