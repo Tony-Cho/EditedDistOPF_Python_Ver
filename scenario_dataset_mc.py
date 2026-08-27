@@ -9,11 +9,11 @@ scenario_dataset_mc.py — 场景数据集蒙特卡洛生成 (用已训练 KNN �
     knn_scaler_{sense}.joblib + knn_feature_names.json + knn_target_names.json
 
 流程 (对每个 15min 断面 × N 样本):
-  1. 固定特征: Load1~32 + Fixed_Bus* 当前功率 (曲线), PV 辐照度 (曲线),
+  1. 固定特征: Load1~32 当前功率 (曲线), PV 辐照度 (曲线),
      储能初始能量 (曲线) / 初始功率 0
-  2. 抽样特征: mc_config 中配置的 EV/AC lb/ub 截断正态 (σ=cv×μ 或 sigma,
-     ub 先抽 [0,1], lb 截断 [0, ub] 保序); 未配置量固定曲线值 (方案A)
-  3. 48 维特征 → scaler → KNN(min/max) → 18 维输出预测
+  2. 抽样特征: mc_config 中配置的 EV/AC lb/ub 截断正态 (μ/σ 可取 shapes 曲线
+     mu:/sigma:, 或 cv 折算; ub 先抽 [0,1], lb 截断 [0, ub] 保序); 未配置量固定曲线值 (方案A)
+  3. 45 维特征 → scaler → KNN(min/max) → 18 维输出预测
 
 输出 (output/{场景名}/, 格式参照 training_dataset/输出控制.md, 前缀 training_dataset → output):
   - output_mc_config.csv       场景预测配置 (读入, 保留)
@@ -77,8 +77,8 @@ def load_mc_config(path: str):
 
     与 training_dataset_mc.load_mc_config 结构一致, 额外支持全局键 model (索引模型库):
       name,value
-      model,training_dataset_storage_bus18_sample    # 模型名 = 训练集文件夹名
-      scenario,output_scenario_trail_1              # 场景名
+      model,training_dataset_default                 # 模型名 = 训练集文件夹名
+      scenario,output_scenario_default              # 场景名
       n_samples,200
       seed,42
       start_time,0:00
@@ -280,8 +280,17 @@ def main():
 
     sys.stdout.reconfigure(line_buffering=True)
 
-    # 0. 场景配置 (output_mc_config.csv): CLI --config 显式 > 自动查找 > --scenario 目录内查找
+    # 0. 场景配置 (output_mc_config.csv): CLI --config 显式 > --scenario 目录内查找
+    #    > 默认算例 (output_scenario_default) > output/ 下唯一配置
     config_path = args.config
+    if config_path is None and args.scenario:
+        dflt = os.path.join("output", args.scenario, "output_mc_config.csv")
+        if os.path.exists(dflt):
+            config_path = dflt
+    if config_path is None:
+        dflt = os.path.join("output", "output_scenario_default", "output_mc_config.csv")
+        if os.path.exists(dflt):
+            config_path = dflt
     if config_path is None:
         found = [os.path.join("output", d, "output_mc_config.csv")
                  for d in sorted(os.listdir("output"))
@@ -290,10 +299,6 @@ def main():
             config_path = found[0]
         elif len(found) > 1:
             raise ValueError(f"output/ 下存在多个 output_mc_config.csv ({found}), 请用 --config 指定")
-    if config_path is None and args.scenario:
-        dflt = os.path.join("output", args.scenario, "output_mc_config.csv")
-        if os.path.exists(dflt):
-            config_path = dflt
     cfg_global, comp_cfg = {}, {}
     if config_path and os.path.exists(config_path):
         cfg_global, comp_cfg = load_mc_config(config_path)

@@ -25,12 +25,12 @@ plot_scenario.py — 根节点基线功率与上/下调边界绘图
   读取 output/output_{scenario}/ (KNN) 与 output/output_{scenario}_opf/ (OPF) 的
   output_system.csv, 输出 plot_{scenario}_real.png 及排序校验统计。
 
-输出: output/{scenario}/plot_{scenario}.png  (--mode prob, 默认)
-      output/output_{scenario}/plot_{scenario}_real.png  (--mode real)
+输出: output/output_{scenario}/plot_{scenario}_real.png  (--mode real, 默认)
+      output/{scenario}/plot_{scenario}.png  (--mode prob)
 
 用法:
-  python plot_scenario.py --scenario scenario_trail_1
-  python plot_scenario.py --mode real --scenario scenario_default
+  python plot_scenario.py                     # 默认: real 模式 + scenario_default
+  python plot_scenario.py --mode prob --scenario scenario_default
 """
 
 from __future__ import annotations
@@ -243,9 +243,9 @@ def plot_real_mode(scenario: str, scen_dir: str, knn_dir: str, opf_dir: str,
 
 def main():
     parser = argparse.ArgumentParser(description="根节点基线功率与上/下调边界绘图")
-    parser.add_argument("--scenario", default="scenario_trail_1", help="场景名 (scenario/{name}/)")
-    parser.add_argument("--mode", default="prob", choices=["prob", "real"],
-                        help="prob=基线+概率带+理论带 (默认); real=真实模式七条线 (KNN vs OPF)")
+    parser.add_argument("--scenario", default="scenario_default", help="场景名 (scenario/{name}/)")
+    parser.add_argument("--mode", default="real", choices=["prob", "real"],
+                        help="real=真实模式七条线 (默认, KNN vs OPF); prob=基线+概率带+理论带")
     parser.add_argument("--knn-dir", default=None,
                         help="real 模式: KNN 输出目录 (默认 output/output_{scenario}/)")
     parser.add_argument("--opf-dir", default=None,

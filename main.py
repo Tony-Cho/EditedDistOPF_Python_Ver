@@ -31,7 +31,7 @@ from load_network import load_network, resolve_model_path # 模型加载 (独立
 # =====================================================================
 # 路径与场景配置 (集中管理, 可按需修改)
 # =====================================================================
-DEFAULT_SCENARIO = "scenario_all"   # 未指定命令行参数时的默认场景
+DEFAULT_SCENARIO = "model_default"   # 未指定命令行参数时的默认场景 (默认算例)
 RESULT_DIR = "demo_result"          # 结果输出根目录: {RESULT_DIR}/{场景名}/{场景名}.txt + 组件 CSV
 
 

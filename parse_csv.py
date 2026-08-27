@@ -12,7 +12,7 @@ CSV 配电网数据解析器
 
 用法:
     from parse_csv import parse_csv
-    net = parse_csv("data/csv_case33/model_storage_bus18")
+    net = parse_csv("data/csv_case33/model_default")
 
 约定:
 - 三相平衡单相等值, per-unit on model_circuit.csv 的 base_mva
@@ -686,7 +686,7 @@ def parse_csv(csv_dir: str) -> Network:
 
 if __name__ == "__main__":
     import sys
-    path = sys.argv[1] if len(sys.argv) > 1 else "data/csv_case33/model_storage_bus18"
+    path = sys.argv[1] if len(sys.argv) > 1 else "data/csv_case33/model_default"
     net = parse_csv(path)
     print("\n储能参数:")
     for s in net.storages.values():

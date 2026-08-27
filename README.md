@@ -533,7 +533,7 @@ python main.py model_default
 
 | 参数 | 作用 | 默认值 |
 | ---- | ---- | ---- |
-| `scenario`（位置参数） | 模型名（`model_xxx`）或模型路径；原默认 `scenario_all` 依赖的 OpenDSS 数据已移除，需显式指定 | 无（需显式指定，如 `model_default`） |
+| `scenario`（位置参数） | 模型名（`model_xxx`）或模型路径 | `model_default`（默认算例） |
 
 #### training_dataset_mc.py — 训练集生成（config: `training_dataset_mc_config.csv`）
 
@@ -552,7 +552,7 @@ python main.py model_default
 | 参数 | 作用 | 优先级 | 默认值 |
 | ---- | ---- | ---- | ---- |
 | `--config` | knn_config.csv 路径 | 显式指定；缺省按 `--csv`/默认训练集名推导 `knn_lib/{训练集名}/knn_config.csv` | — |
-| `--csv` | 训练集 CSV 目录 | **覆盖** config `dataset_csv` | 无 config 时旧默认 `training_dataset/training_dataset_storage_bus18_sample/csv`（建议显式指定，如 `training_dataset/training_dataset_default/csv`） |
+| `--csv` | 训练集 CSV 目录 | **覆盖** config `dataset_csv` | `training_dataset/training_dataset_default/csv`（默认算例） |
 | `--k` | KNN 邻居数 | **覆盖** config `knn_k` | **5** |
 | `--weights` | `uniform` / `distance` | **覆盖** config `knn_weights` | **`distance`** |
 | `--test-size` | 测试集比例 | **覆盖** config `knn_test_size` | **0.2** |
@@ -564,7 +564,7 @@ python main.py model_default
 
 | 参数 | 作用 | 优先级 | 默认值 |
 | ---- | ---- | ---- | ---- |
-| `--config` | output_mc_config.csv 路径 | 显式指定优先；缺省自动查找 `output/` 下唯一一份配置（多份时必须 `--config`） | — |
+| `--config` | output_mc_config.csv 路径 | 显式指定优先；缺省依次查找 `--scenario` 目录 → 默认算例 `output/output_scenario_default/` → output/ 下唯一一份配置 | — |
 | `--scenario` | 场景名 | **覆盖** config `scenario` | 无内置默认（读 config） |
 | `--model` | 模型名（训练集文件夹名） | **覆盖** config `model` | 无内置默认（读 config） |
 | `--model-dir` | 模型目录 | **覆盖** | `knn_lib/{model}/` |
@@ -580,8 +580,8 @@ python main.py model_default
 
 | 参数 | 作用 | 默认值 |
 | ---- | ---- | ---- |
-| `--scenario` | 场景名（`scenario/{name}/`） | `scenario_trail_1` |
-| `--mode` | `prob`（概率边界图）/ `real`（七线验证图） | **`prob`** |
+| `--scenario` | 场景名（`scenario/{name}/`） | `scenario_default`（默认算例） |
+| `--mode` | `real`（七线验证图）/ `prob`（概率边界图） | **`real`** |
 | `--knn-dir` | real 模式：KNN 结果目录 | `output/output_{scenario}/` |
 | `--opf-dir` | real 模式：OPF 结果目录 | `output/output_{scenario}_opf/` |
 | `--out` | 图片输出完整路径 | 见各模式输出说明 |

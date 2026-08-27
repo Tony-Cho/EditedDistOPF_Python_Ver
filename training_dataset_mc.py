@@ -565,7 +565,7 @@ def main():
     if not scenario:
         raise ValueError("未指定模型/场景: 请在命令行传模型名或配置文件提供 model")
     model = cfg_global.get("model") or scenario
-    n_samples = args.n if args.n is not None else int(cfg_global.get("n_samples", 500))
+    n_samples = args.n if args.n is not None else int(cfg_global.get("n_samples", 200))
     seed = args.seed if args.seed is not None else int(cfg_global.get("seed", 42))
     start_time = cfg_global.get("start_time", "0:00")
     end_time = cfg_global.get("end_time", "23:45")

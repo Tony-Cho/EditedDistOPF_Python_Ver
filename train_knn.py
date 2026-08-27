@@ -3,20 +3,20 @@
 train_knn.py
 基于 MC 抽样 OPF 结果训练 KNN 回归模型 (根节点注入预测)
 
-数据来源 (训练集 csv 目录由 knn_config.csv 的 dataset_csv 指定, 如 training_dataset/{scenario}_sample/csv/):
-  - training_dataset_sample.csv  输入特征之一: 各负荷功率 (Load1~Load32 + Fixed_Bus*)
+数据来源 (训练集 csv 目录由 knn_config.csv 的 dataset_csv 指定, 如 training_dataset/training_dataset_default/csv/):
+  - training_dataset_sample.csv  输入特征之一: 各负荷功率 (Load1~Load32) 等抽样值
   - training_dataset_system.csv  输出目标: 根节点有功/无功 (p_sub_mw, q_sub_mvar), 按 sense 区分
-  - training_dataset_storage.csv 输入特征: 各储能净有功输出 (p_net_mw) 与无功 (q_mvar)
-  - training_dataset_pvs.csv     输入特征: 各光伏有功输出 (p_out_mw) 与无功 (q_out_mvar)
-  - training_dataset_loads.csv   输入特征: type 为 ev/ac 的可调度负荷实际有功 (p_out_mw)
+  - training_dataset_storage.csv 输出目标: 各储能净有功 (p_net_mw) / 无功 (q_mvar) / 能量 (se_mwh)
+  - training_dataset_pvs.csv     输出目标: 各光伏有功 (p_out_mw) / 无功 (q_out_mvar)
+  - training_dataset_loads.csv   输出目标: type 为 ev/ac 的可调度负荷实际有功 (p_out_mw)
 
 训练两个 KNN 模型 (同一套输入特征, 不同输出 sense):
   - min: 最小化根节点注入场景
   - max: 最大化根节点注入场景
 
-特征 (每样本一行, 按 sample_id+time_slot+sense 对齐):
-  固定负荷功率 (35) + 储能 p_net/q (2×N_st) + PV p_out/q_out (2×N_pv)
-  + EV/AC 负荷 p_out (N_evac)
+特征 (每样本一行, 按 sample_id+time_slot+sense 对齐; 默认算例共 45 维):
+  固定负荷功率 Load1~32 (32) + 储能初始状态 p_init/se_init (2) + PV 辐照度 (5)
+  + EV/AC 可调上下限 lb/ub (6)
 
 用法:
   python train_knn.py                                     # 训练集位置与参数均读取 knn_config.csv
@@ -85,7 +85,7 @@ def load_knn_config(path: str) -> dict:
     配置文件位于模型总库: knn_lib/{训练集文件夹名}/knn_config.csv。
     CSV 结构与 mc_config 一致 (前两列 name,value):
       name,value
-      dataset_csv,training_dataset/training_dataset_storage_bus18_sample/csv   ← 训练集 csv 目录 (相对工作目录)
+      dataset_csv,training_dataset/training_dataset_default/csv   ← 训练集 csv 目录 (相对工作目录)
       knn_k,5
       knn_weights,distance
       knn_test_size,0.2

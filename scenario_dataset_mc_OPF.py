@@ -25,8 +25,8 @@ LinDistFlow SOCP, Gurobi), 得到真值用于验证 KNN 预测精度。
   - output_loads.csv    可调度负荷实际有功真值 (ev/ac)
 
 用法:
-  python scenario_dataset_mc_OPF.py --config output/output_scenario_trail_1/output_mc_config.csv
-  python scenario_dataset_mc_OPF.py --scenario output_scenario_trail_1 --n 500 --seed 42
+  python scenario_dataset_mc_OPF.py --config output/output_scenario_default/output_mc_config.csv
+  python scenario_dataset_mc_OPF.py --scenario output_scenario_default --n 200 --seed 42
 """
 
 from __future__ import annotations
@@ -118,8 +118,8 @@ def load_mc_config(path: str):
 
     结构与 scenario_dataset_mc.load_mc_config 完全一致:
       name,value
-      model,training_dataset_storage_bus18_sample    # KNN 版索引模型库用, 本版忽略
-      scenario,output_scenario_trail_1              # 场景名
+      model,training_dataset_default                 # KNN 版索引模型库用, 本版忽略
+      scenario,output_scenario_default              # 场景名
       n_samples,200
       seed,42
       start_time,0:00
@@ -378,10 +378,15 @@ def main():
 
     sys.stdout.reconfigure(line_buffering=True)
 
-    # 0. 场景配置 (output_mc_config.csv): CLI --config 显式 > --scenario 目录内查找 > 自动查找
+    # 0. 场景配置 (output_mc_config.csv): CLI --config 显式 > --scenario 目录内查找
+    #    > 默认算例 (output_scenario_default) > output/ 下唯一配置
     config_path = args.config
     if config_path is None and args.scenario:
         dflt = os.path.join("output", args.scenario, "output_mc_config.csv")
+        if os.path.exists(dflt):
+            config_path = dflt
+    if config_path is None:
+        dflt = os.path.join("output", "output_scenario_default", "output_mc_config.csv")
         if os.path.exists(dflt):
             config_path = dflt
     if config_path is None:
