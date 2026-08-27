@@ -9,9 +9,11 @@
 项目由四个功能模块组成，数据按以下流程流转：
 
 - **单断面 OPF 验证**：网络模型 → `main.py` → `demo_result/`
-- **KNN 方法全流程**：网络模型 + 场景曲线 + 抽样配置 → `training_dataset_mc.py` → `train_knn.py` → `scenario_dataset_mc.py` → `output/`
+- **KNN 方法全流程**：网络模型 + model\_shapes mu/sigma 曲线 + 抽样配置 → `training_dataset_mc.py` → `train_knn.py` → `scenario_dataset_mc.py` → `output/`
 - **OPF 方法概率化验证**：场景曲线 + 抽样配置 → `scenario_dataset_mc_OPF.py` → `output/`
 - **结果可视化**：场景曲线 + 输出结果 → `plot_scenario.py` → 图表
+
+**默认算例（default case）**：模型 `model_default` + 场景 `scenario_default` + 训练集 `training_dataset_default` + KNN 库 `knn_lib/training_dataset_default/`，验证结果输出至 `output/output_scenario_default/`（KNN）与 `output/output_scenario_default_opf/`（OPF 真值），最终由 `plot_scenario.py --mode real` 绘制七线对比图。
 
 各模块的详细数据流见下方对应章节。
 
@@ -22,30 +24,31 @@
 ```
 EditedDistOPF/
 ├── data/
-│   ├── csv_case33/             ← 网络模型 CSV 目录 (前缀 model_xxx)
-│   ├── opendss_case33/         ← OpenDSS 原始模型
-│   └── json_case33/            ← 中间格式 (JSON)
-├── scenario/                   ← 场景时序曲线 (scenario_xxx/)
-├── training_dataset/           ← 训练集输出目录
-├── output/                     ← 场景预测/验证输出目录
-├── demo_result/                ← main.py 单断面输出
-├── knn_lib/                    ← KNN 模型库
-├── history/                    ← 历史数据 (PV/负荷归一化曲线)
-├── main.py                     ← 单断面 VPP OPF
-├── training_dataset_mc.py      ← 蒙特卡洛抽样生成训练集
-├── train_knn.py                ← KNN 代理模型训练
-├── scenario_dataset_mc.py      ← KNN 预测场景数据集
-├── scenario_dataset_mc_OPF.py  ← OPF 真值场景数据集 (验证)
-├── plot_scenario.py            ← 场景结果可视化
-├── load_network.py             ← 网络模型加载
-├── opf_model.py                ← OPF 建模与求解
-├── parse_dss.py                ← OpenDSS 文件解析
-├── parse_csv.py                ← CSV 网络模型解析
-├── save_results.py             ← OPF 结果导出
-├── save_output.py              ← KNN 模型结果导出
-├── sampling.py                 ← 抽样函数库
-├── requirements.txt            ← Python 依赖
-└── README.md                   ← 本文件
+│   └── csv_case33/
+│       ├── model_default/          ← 默认网络模型 CSV (含 model_shapes.csv: 47 变量 × mu/sigma 曲线)
+│       └── 输入控制.md              ← 输入格式约定文档
+├── scenario/                       ← 场景时序曲线 (scenario_default 等)
+├── training_dataset/               ← 训练集输出目录 (training_dataset_default/ 等)
+├── output/                         ← 场景预测/验证输出目录 (output_scenario_default(_opf)/ 等)
+├── demo_result/                    ← main.py 单断面输出
+├── knn_lib/                        ← KNN 模型库 (training_dataset_default/ 等)
+├── history/
+│   └── history_60_days_sample.csv  ← 60 天历史数据 (mu/sigma 曲线的提取来源)
+├── main.py                         ← 单断面 VPP OPF
+├── training_dataset_mc.py          ← 蒙特卡洛抽样生成训练集
+├── train_knn.py                    ← KNN 代理模型训练
+├── scenario_dataset_mc.py          ← KNN 预测场景数据集
+├── scenario_dataset_mc_OPF.py      ← OPF 真值场景数据集 (验证)
+├── plot_scenario.py                ← 场景结果可视化 (prob/real 两种模式)
+├── load_network.py                 ← 网络模型加载
+├── opf_model.py                    ← OPF 建模与求解
+├── parse_csv.py                    ← CSV 网络模型解析
+├── parse_dss.py                    ← OpenDSS 文件解析 (历史遗留, 对应数据已移除)
+├── save_results.py                 ← OPF 结果导出
+├── save_output.py                  ← KNN 模型结果导出
+├── sampling.py                     ← 抽样函数库
+├── requirements.txt                ← Python 依赖
+└── README.md                       ← 本文件
 ```
 
 ***
@@ -79,9 +82,8 @@ data/csv_case33/model_{model_name}/     ← 网络模型 CSV
 加载配电网模型，运行两个 OPF 场景（最小化/最大化根节点注入功率），输出结果。用于验证单断面 OPF 求解的正确性与完整性。
 
 ```bash
-python main.py                                  # 默认场景 scenario_all
-python main.py model_storage_bus18              # 指定模型
-python main.py data/csv_case33/model_xxx/       # 直接指定路径
+python main.py model_default                    # 默认模型
+python main.py data/csv_case33/model_default/   # 直接指定路径
 ```
 
 **输出** → `demo_result/demo_result_{model_name}/`：
@@ -99,22 +101,21 @@ python main.py data/csv_case33/model_xxx/       # 直接指定路径
 ### 2. 含概率化表征的 KNN 方法全流程验证
 
 ```
-data/csv_case33/model_{model_name}/      ← 网络模型 CSV
-scenario/scenario_{scenario_name}/       ← 场景时序曲线
-training_dataset_mc_config.csv            ← 抽样配置
+data/csv_case33/model_{model_name}/      ← 网络模型 CSV (含 model_shapes.csv mu/sigma 曲线)
+training_dataset_mc_config.csv            ← 抽样配置 (model 键指定网络模型)
          │
          ▼
 ┌─ training_dataset_mc.py ─────────────────────────────────┐
-│  加载网络 + 场景形状 + training_dataset_mc_config 抽样配置       
-│  → 蒙特卡洛抽样 → 逐样本 OPF 求解              
-│  → training_dataset/training_dataset_{model_name}_sample/ 
+│  加载网络 + model_shapes mu/sigma 曲线 + 抽样配置
+│  → 逐断面蒙特卡洛抽样 → 逐样本 OPF 求解
+│  → training_dataset/training_dataset_{scenario}/
 └──────────────────────────────────────────────────────────┘
          │
          ▼
 ┌─ train_knn.py ──────────────────────────────────┐
 │  读取训练集 + knn_config 训练配置
 │  → 训练 KNN 模型 (min/max)          
-│  → knn_lib/training_dataset_{model_name}_sample/
+│  → knn_lib/{训练集文件夹名}/
 │  (模型 + 标准化器 + 特征列名)            
 └─────────────────────────────────────────────────┘
          │
@@ -135,13 +136,18 @@ training_dataset_mc_config.csv            ← 抽样配置
 
 对每个断面按 `training_dataset_mc_config.csv` 配置做蒙特卡洛抽样，对每个样本求解 OPF，生成训练数据集（含可调度负荷上下限的概率化表征）。
 
+抽样配置支持两类写法：
+- **mu/sigma 曲线**（当前默认算例）：参数格填 `mu:曲线名`、`sigma:曲线名`，逐断面从模型 `model_shapes.csv`（或场景 shapes）取该时间点的 μ 与 σ，μ/σ 曲线由 `history/history_60_days_sample.csv` 60 天历史数据提取；
+- **常数参数**：`cv`（σ=cv×μ，μ=组件基线）/ `sigma` 等数值参数，各断面相同。
+
 ```bash
-python training_dataset_mc.py model_storage_bus18 --n 500 --seed 42
-python training_dataset_mc.py --config training_dataset_mc_config.csv
+python training_dataset_mc.py --config training_dataset/training_dataset_default/training_dataset_mc_config.csv
+python training_dataset_mc.py default --n 500 --seed 42
 ```
 
-**输出** → `training_dataset/training_dataset_{model}_sample/`：
+**输出** → `training_dataset/training_dataset_{scenario}/`：
 
+- `training_dataset_mc_config.csv` — 抽样配置副本 (保留)
 - `training_dataset_sample.csv` — 抽样输入场景表 (每样本一行)
 - `csv/training_dataset_system.csv` — 系统级指标 (带 sample\_id)
 - `csv/training_dataset_buses.csv` — 节点结果
@@ -158,14 +164,14 @@ python training_dataset_mc.py --config training_dataset_mc_config.csv
 读取训练集 CSV，训练两个 KNN 回归模型（min/max 场景），预测根节点注入有功/无功，作为 OPF 的替代模型。
 
 ```bash
-python train_knn.py                                          # 默认读取 knn_config.csv
-python train_knn.py --config knn_lib/{训练集文件夹名}/knn_config.csv
+python train_knn.py --csv training_dataset/training_dataset_default/csv      # 默认算例训练集
+python train_knn.py --config knn_lib/{训练集文件夹名}/knn_config.csv           # 显式配置
 python train_knn.py --k 7 --weights uniform --test-size 0.2  # CLI 覆盖
 ```
 
-**特征** (48 维)：固定负荷功率 (35) + 储能 p\_net/q (2×N\_st) + PV p\_out/q\_out (2×N\_pv) + EV/AC 负荷 p\_out (N\_evac)
+**特征** (默认算例 45 维)：固定负荷功率 (32) + 储能初始状态 p\_init/se\_init (2) + PV 辐照度 (5) + EV/AC 可调上下限 lb/ub (6)
 
-**输出** → `knn_lib/training_dataset_{model}_sample/`：
+**输出** → `knn_lib/{训练集文件夹名}/`：
 
 - `knn_config.csv` — 训练配置 (含数据集路径)
 - `knn_params.csv` — 模型参数 + 数据规模
@@ -181,14 +187,14 @@ python train_knn.py --k 7 --weights uniform --test-size 0.2  # CLI 覆盖
 加载场景时序曲线，对可调度负荷上下限做截断正态抽样（概率化表征），其余量固定为曲线值，通过 KNN 模型预测根节点注入。
 
 ```bash
-python scenario_dataset_mc.py --config output/output_scenario_trail_1/output_mc_config.csv
-python scenario_dataset_mc.py --scenario output_scenario_trail_1 --model training_dataset_storage_bus18_sample --n 500
+python scenario_dataset_mc.py --config output/output_scenario_default/output_mc_config.csv
+python scenario_dataset_mc.py --scenario output_scenario_default --model training_dataset_default --n 200
 ```
 
 **输出** → `output/output_{scenario_name}/`：
 
 - `output_mc_config.csv` — 抽样配置副本 (保留)
-- `output_sample.csv` — 抽样输入场景表 (48 维特征)
+- `output_sample.csv` — 抽样输入场景表 (默认算例 45 维特征)
 - `output_system.csv` — 根节点注入预测 (min/max)
 - `output_storage.csv` — 储能出力预测
 - `output_pvs.csv` — 光伏出力预测
@@ -213,8 +219,8 @@ output_mc_config.csv                  ← 抽样配置
 与 `scenario_dataset_mc.py` 使用同一抽样配置和同一随机种子，对可调度负荷上下限做相同的截断正态抽样，但输出通过实际求解 OPF 获得，用于验证 KNN 预测精度，同时作为 OPF 方法的概率化表征。
 
 ```bash
-python scenario_dataset_mc_OPF.py --config output/output_scenario_trail_1/output_mc_config.csv
-python scenario_dataset_mc_OPF.py --scenario output_scenario_trail_1 --n 500 --seed 42
+python scenario_dataset_mc_OPF.py --config output/output_scenario_default/output_mc_config.csv
+python scenario_dataset_mc_OPF.py --scenario output_scenario_default --n 200 --seed 42
 ```
 
 **输出** → `output/output_{场景名}_opf/`：格式与 KNN 版一致，字段含义相同。
@@ -234,20 +240,42 @@ scenario/scenario_{scenario_name}/ ← 场景时序曲线
 └──────────────────────────────────────────────────────────┘
 ```
 
-读取场景曲线和 OPF/KNN 结果，绘制根节点基线功率与上/下调边界对比图，直观展示不同方法的差异。
+读取场景曲线和 OPF/KNN 结果，绘制根节点基线功率与上/下调边界对比图，直观展示不同方法的差异。支持两种模式：
+
+**prob 模式（默认）** — 概率边界图：
 
 ```bash
-python plot_scenario.py --scenario output_scenario_trail_1
+python plot_scenario.py --scenario scenario_trail_1
 ```
 
-**输出** → `output/output_{scenario_name}/plot_{scenario_name}.png`
+**输出** → `output/{scenario}/plot_{scenario}.png`
 
 绘制内容：
 
-- 固定负荷基线 (Load1\~32 + Fixed\_Bus\*)
+- 固定负荷基线 (Load1\~32)
 - 可调度负荷基线 (EV/AC)
 - 概率边界 (10%\~90% 分位区间)
 - 理论边界 (EV/AC 全削去/全满发 + PV 满发/不出力 + 储能满功率)
+
+**real 模式（默认算例验证图）** — 七条线单图 (`--mode real`)：
+
+```bash
+python plot_scenario.py --mode real --scenario scenario_default
+```
+
+读取 `output/output_{scenario}/`（KNN 预测）与 `output/output_{scenario}_opf/`（OPF 真值）的 output\_system.csv，单图绘制七条线（自上而下）：
+
+1. 理论上界 (不考虑安全约束)
+2. OPF P10 (上调上界真值)
+3. KNN P10 (上调上界代理)
+4. 负荷基线
+5. KNN P90 (下调下界代理)
+6. OPF P90 (下调下界真值)
+7. 理论下界 (不考虑安全约束)
+
+理论上下界之间、OPF P10\~P90 之间、KNN P10\~P90 之间均加背景半透明填充，并输出排序校验统计。
+
+**输出** → `output/output_{scenario}/plot_{scenario}_real.png`
 
 ***
 
@@ -475,26 +503,26 @@ $$ z_i^{\text{lb}} = \frac{\text{mult}_i^{\text{lb}}}{\text{mult}_i^{\text{cur}}
 ### 全链路示例（流水线）
 
 ```bash
-# 1. 生成训练集 (model_storage_bus18, 500 样本/断面)
-python training_dataset_mc.py model_storage_bus18 --n 500 --seed 42
+# 1. 生成训练集 (默认算例 default, 200 样本/断面)
+python training_dataset_mc.py --config training_dataset/training_dataset_default/training_dataset_mc_config.csv
 
 # 2. 训练 KNN 模型
-python train_knn.py
+python train_knn.py --csv training_dataset/training_dataset_default/csv
 
 # 3. 场景预测 (KNN)
-python scenario_dataset_mc.py --scenario output_scenario_trail_1 --model training_dataset_storage_bus18_sample --n 200
+python scenario_dataset_mc.py --scenario output_scenario_default --model training_dataset_default --n 200
 
 # 4. 场景验证 (OPF 真值)
-python scenario_dataset_mc_OPF.py --scenario output_scenario_trail_1 --n 200 --seed 42
+python scenario_dataset_mc_OPF.py --scenario output_scenario_default --n 200 --seed 42
 
-# 5. 可视化对比
-python plot_scenario.py --scenario output_scenario_trail_1
+# 5. 可视化对比 (七线图)
+python plot_scenario.py --mode real --scenario scenario_default
 ```
 
 ### 单断面 OPF 示例
 
 ```bash
-python main.py model_storage_bus18
+python main.py model_default
 ```
 
 ### 各程序参数与优先级
@@ -505,26 +533,26 @@ python main.py model_storage_bus18
 
 | 参数 | 作用 | 默认值 |
 | ---- | ---- | ---- |
-| `scenario`（位置参数） | 场景名（`model_xxx` / `scenario_xxx`）或 `.dss` 路径 | `scenario_all` |
+| `scenario`（位置参数） | 模型名（`model_xxx`）或模型路径；原默认 `scenario_all` 依赖的 OpenDSS 数据已移除，需显式指定 | 无（需显式指定，如 `model_default`） |
 
 #### training_dataset_mc.py — 训练集生成（config: `training_dataset_mc_config.csv`）
 
 | 参数 | 作用 | 优先级 | 默认值 |
 | ---- | ---- | ---- | ---- |
-| `scenario`（位置） | 模型/场景名 | 给了即**覆盖** config 的 `model`/`scenario`；缺省读 config | 无内置默认 |
-| `--config` | 全局控制 CSV 路径 | 显式指定优先；缺省自动找 `training_dataset/training_dataset_{scenario}_sample/training_dataset_mc_config.csv` | — |
+| `scenario`（位置） | 场景名（输出目录 `training_dataset/training_dataset_{scenario}/`）；网络模型由 config 的 `model` 键单独指定 | 给了即**覆盖** config 的 `scenario`；缺省读 config | 无内置默认 |
+| `--config` | 全局控制 CSV 路径 | 显式指定优先；缺省自动找 `training_dataset/training_dataset_{scenario}/training_dataset_mc_config.csv` | — |
 | `--n` | 抽样次数 | **覆盖** config `n_samples` | **500** |
 | `--seed` | 随机种子 | **覆盖** config `seed` | **42** |
 | `--sense` | `min` / `max` / `both` | 无 config 对应键 | **`both`** |
 
-> config 其余键（无 CLI）：`start_time`（默认 **`0:00`**）、`end_time`（默认 **`23:45`**）。
+> config 全局键：`model`（网络模型目录名，如 `model_default`）、`scenario`（输出目录名，如 `default`）、`n_samples`、`seed`、`start_time`（默认 **`0:00`**）、`end_time`（默认 **`23:45`**）；组件行支持 `mu:曲线名`/`sigma:曲线名`（逐断面取 shapes 曲线值）或 `cv`/`sigma` 常数参数。
 
 #### train_knn.py — KNN 模型训练（config: `knn_config.csv`）
 
 | 参数 | 作用 | 优先级 | 默认值 |
 | ---- | ---- | ---- | ---- |
 | `--config` | knn_config.csv 路径 | 显式指定；缺省按 `--csv`/默认训练集名推导 `knn_lib/{训练集名}/knn_config.csv` | — |
-| `--csv` | 训练集 CSV 目录 | **覆盖** config `dataset_csv` | `training_dataset/training_dataset_storage_bus18_sample/csv` |
+| `--csv` | 训练集 CSV 目录 | **覆盖** config `dataset_csv` | 无 config 时旧默认 `training_dataset/training_dataset_storage_bus18_sample/csv`（建议显式指定，如 `training_dataset/training_dataset_default/csv`） |
 | `--k` | KNN 邻居数 | **覆盖** config `knn_k` | **5** |
 | `--weights` | `uniform` / `distance` | **覆盖** config `knn_weights` | **`distance`** |
 | `--test-size` | 测试集比例 | **覆盖** config `knn_test_size` | **0.2** |
@@ -552,8 +580,12 @@ python main.py model_storage_bus18
 
 | 参数 | 作用 | 默认值 |
 | ---- | ---- | ---- |
-| `--scenario` | 场景名 | `output_scenario_trail_1` |
-| `--out-dir` | 图片输出目录 | `output/{scenario}/` |
+| `--scenario` | 场景名（`scenario/{name}/`） | `scenario_trail_1` |
+| `--mode` | `prob`（概率边界图）/ `real`（七线验证图） | **`prob`** |
+| `--knn-dir` | real 模式：KNN 结果目录 | `output/output_{scenario}/` |
+| `--opf-dir` | real 模式：OPF 结果目录 | `output/output_{scenario}_opf/` |
+| `--out` | 图片输出完整路径 | 见各模式输出说明 |
+| `--out-dir` | 图片输出目录 | `output/{scenario}/`（prob）/ KNN 结果目录（real） |
 
 ***
 
@@ -578,10 +610,10 @@ pip install -r requirements.txt
 
 1. `data/csv_case33/model_{scenario}/` — CSV 模型目录
 2. `scenario/{scenario}/` — 场景目录
-3. `data/opendss_case33/{scenario}/` — OpenDSS 目录
+3. `data/opendss_case33/{scenario}/` — OpenDSS 目录（数据已移除，此规则仅代码保留）
 4. `{scenario}` — 直接作为路径
 
-支持前缀兼容：`scenario_` ↔ `model_` ↔ `output_` (自动去除 `output_` 前缀回退到原场景名)。
+支持前缀兼容：`scenario_` ↔ `model_` ↔ `output_`（自动去除 `output_` 前缀回退到原场景名，如 `output_scenario_default` → `scenario_default`）。
 
 ***
 

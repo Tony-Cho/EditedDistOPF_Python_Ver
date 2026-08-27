@@ -4,10 +4,10 @@
 - **train_knn.py**：基于 MC 抽样 OPF 结果训练 KNN 回归模型（min/max 两个方向），训练产物见第一部分；
 - **scenario_dataset_mc.py**：用已训练模型对场景做概率化预测，预测输出见第二部分。
 
-所有输出统一保存在 `output/` 目录下。示例以训练集 `training_dataset_storage_bus18_sample`、场景 `output_scenario_trail_1` 的实际输出为基准。
+所有输出统一保存在 `output/` 目录下。示例以训练集 `training_dataset_default`、场景 `output_scenario_default` 的实际输出为基准。
 
 **通用约定**：
-- **训练产物**：`knn_lib/{训练集文件夹名}/`，训练集文件夹名取自 `training_dataset/` 下训练集所在目录名（如 `training_dataset/training_dataset_storage_bus18_sample/csv/` → `knn_lib/training_dataset_storage_bus18_sample/`）；模型与使用场景解耦（先训练、后选场景用）。
+- **训练产物**：`knn_lib/{训练集文件夹名}/`，训练集文件夹名取自 `training_dataset/` 下训练集所在目录名（如 `training_dataset/training_dataset_default/csv/` → `knn_lib/training_dataset_default/`）；模型与使用场景解耦（先训练、后选场景用）。
 - **预测输出**：`output/{场景名}/`，场景名对应 `scenario/` 下场景子文件夹名；该场景使用的 KNN 模型**不复制**到场景下，由场景配置 `output_mc_config.csv` 的 `model` 键索引到总库 `knn_lib/{训练集文件夹名}/`（见第二部分 1.1 节）。
 - `sense` 列：`min` = 最小化根节点注入模型，`max` = 最大化根节点注入模型。
 - **列名单位与值单位严格一致**：功率列值即 MW / Mvar（根节点注入 `p_sub_mw`、`q_sub_mvar` 来自 OPF 结果 training_dataset_system.csv）；R²/误差等指标无量纲。
@@ -21,21 +21,20 @@
 
 ```
 knn_lib/{训练集文件夹名}/
-├── knn_config.csv                  # 模型训练参数 (读入, knn_* 键; 见 1.1 节)
+├── knn_config.csv                  # 模型训练参数 (读入, knn_* 键; 可选, 见 1.1 节)
 ├── knn_params.csv                  # 模型参数 + 数据规模 (每 sense 一行)
 ├── knn_metrics.csv                 # 评估指标 R²/MAE/RMSE (每 sense×目标 一行)
 ├── knn_predictions.csv             # 测试集逐样本预测对比 (每 sense×样本×目标 一行)
 ├── knn_model_{min,max}.joblib      # KNN 回归模型 (KNeighborsRegressor)
 ├── knn_scaler_{min,max}.joblib     # StandardScaler (训练集拟合)
-├── knn_feature_names.json          # 输入特征列名 (48, 顺序与模型一致)
+├── knn_feature_names.json          # 输入特征列名 (默认算例 45, 顺序与模型一致)
 └── knn_target_names.json           # 输出目标列名 (18, 与 y 列一一对应)
 ```
 
-示例（当前训练集）：
+示例（默认训练集）：
 
 ```
-knn_lib/training_dataset_storage_bus18_sample/
-├── knn_config.csv
+knn_lib/training_dataset_default/
 ├── knn_params.csv
 ├── knn_metrics.csv
 ├── knn_predictions.csv
@@ -44,6 +43,8 @@ knn_lib/training_dataset_storage_bus18_sample/
 ├── knn_feature_names.json
 └── knn_target_names.json
 ```
+
+> `knn_config.csv` 为可选文件：默认训练集未提供时，train_knn.py 直接使用内置默认参数（或 CLI 覆盖）。
 
 ### 1.1 模型训练参数（knn_config.csv，读入）
 
@@ -94,8 +95,8 @@ knn_n_jobs,
 
 | sense | k | weights | metric | p | algorithm | leaf_size | n_jobs | test_size | seed | n_train | n_test | n_features | n_targets | data_csv |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| max | 5 | distance | minkowski | 2 | auto | 30 |  | 0.2 | 42 | 15360 | 3840 | 48 | 18 | training_dataset\training_dataset_storage_bus18_sample\csv |
-| min | 5 | distance | minkowski | 2 | auto | 30 |  | 0.2 | 42 | 15360 | 3840 | 48 | 18 | training_dataset\training_dataset_storage_bus18_sample\csv |
+| max | 5 | distance | minkowski | 2 | auto | 30 |  | 0.2 | 42 | 15360 | 3840 | 45 | 18 | training_dataset\training_dataset_default\csv |
+| min | 5 | distance | minkowski | 2 | auto | 30 |  | 0.2 | 42 | 15360 | 3840 | 45 | 18 | training_dataset\training_dataset_default\csv |
 
 ## 3. knn_metrics.csv（评估指标）
 
@@ -122,11 +123,11 @@ knn_n_jobs,
 
 | sense | target | r2 | mae | rmse |
 |---|---|---|---|---|
-| max | p_sub_mw | 0.789602 | 0.029909 | 0.037768 |
-| max | q_sub_mvar | 0.324433 | 0.074841 | 0.098056 |
-| min | p_sub_mw | 0.793251 | 0.251292 | 0.305203 |
-| min | q_sub_mvar | 0.753681 | 0.140988 | 0.215091 |
-| min | PV_Bus6_p_out_mw | 0.971218 | 0.009324 | 0.017299 |
+| max | p_sub_mw | 0.995317 | 0.034368 | 0.043705 |
+| max | q_sub_mvar | 0.838167 | 0.024406 | 0.032917 |
+| max | BESS_Bus18_p_net_mw | 1.000000 | 0.000000 | 0.000000 |
+| max | BESS_Bus18_q_mvar | 0.993239 | 0.003929 | 0.009113 |
+| max | BESS_Bus18_se_mwh | 0.938047 | 0.164769 | 0.214900 |
 
 ## 4. knn_predictions.csv（测试集逐样本预测对比）
 
@@ -168,18 +169,18 @@ knn_n_jobs,
 ```
 output/{场景名}/
 ├── output_mc_config.csv                  # 场景预测配置 (输入, model 索引 + scenario + 抽样配置; 见 1.1 节)
-├── output_sample.csv              # 抽样输入场景表 (每 断面×样本 一行, 48 特征列)
+├── output_sample.csv              # 抽样输入场景表 (每 断面×样本 一行, 45 特征列)
 ├── output_system.csv              # 根节点注入 (sense + p_sub_mw/q_sub_mvar)
 ├── output_storage.csv             # 储能出力 (p_net/q/se)
 ├── output_pvs.csv                 # 光伏出力 (p_out/q_out)
 └── output_loads.csv               # 可调度负荷实际有功 (ev/ac 的 p_out)
 ```
 
-示例（当前场景）：
+示例（默认场景）：
 
 ```
-output/output_scenario_trail_1/
-├── output_mc_config.csv                  # scenario=output_scenario_trail_1, model=training_dataset_storage_bus18_sample + 抽样配置
+output/output_scenario_default/
+├── output_mc_config.csv                  # scenario=output_scenario_default, model=training_dataset_default + 抽样配置
 ├── output_sample.csv
 ├── output_system.csv
 ├── output_storage.csv
@@ -191,33 +192,33 @@ output/output_scenario_trail_1/
 
 ### 1.1 场景预测配置（output_mc_config.csv，读入）
 
-放在 `output/{场景名}/output_mc_config.csv`，**结构与 training_dataset 下的 output_mc_config.csv 一致**（全局运行参数 + 组件分布，抽样参数在组件行内单独设置），额外多一个 `model` 键索引模型库。由 `--config` 显式指定或自动查找（output/ 下唯一时自动使用）：
+放在 `output/{场景名}/output_mc_config.csv`，**结构与 training_dataset 下的 training_dataset_mc_config.csv 一致**（全局运行参数 + 组件分布，抽样参数在组件行内单独设置），额外多一个 `model` 键索引模型库。由 `--config` 显式指定或自动查找（output/ 下唯一时自动使用）：
 
 ```csv
 name,value
-model,training_dataset_storage_bus18_sample    # 模型名 = 训练集文件夹名 (索引 knn_lib/{model}/)
-scenario,output_scenario_trail_1              # 场景名 (scenario/{scenario}/)
+model,training_dataset_default     # 模型名 = 训练集文件夹名 (索引 knn_lib/{model}/)
+scenario,output_scenario_default   # 场景名 (scenario/{scenario}/ 或去除 output_ 前缀回退)
 n_samples,200
 seed,42
 start_time,0:00
 end_time,23:45
-EV_Bus19_lb,truncated_normal,cv:0.10   # 组件分布: 每个抽样量单独设置参数
-EV_Bus19_ub,truncated_normal,cv:0.10
-EV_Bus7_lb,truncated_normal,cv:0.10
-EV_Bus7_ub,truncated_normal,cv:0.10
-AC_Bus2_lb,truncated_normal,cv:0.10
-AC_Bus2_ub,truncated_normal,cv:0.10
+EV_Bus19_lb,truncated_normal,mu:EV_Bus19_lb_mu,sigma:EV_Bus19_lb_sigma
+EV_Bus19_ub,truncated_normal,mu:EV_Bus19_ub_mu,sigma:EV_Bus19_ub_sigma
+EV_Bus7_lb,truncated_normal,mu:EV_Bus7_lb_mu,sigma:EV_Bus7_lb_sigma
+EV_Bus7_ub,truncated_normal,mu:EV_Bus7_ub_mu,sigma:EV_Bus7_ub_sigma
+AC_Bus2_lb,truncated_normal,mu:AC_Bus2_lb_mu,sigma:AC_Bus2_lb_sigma
+AC_Bus2_ub,truncated_normal,mu:AC_Bus2_ub_mu,sigma:AC_Bus2_ub_sigma
 ```
 
 - 全局键：`model`（模型索引）/ `scenario`（场景名）/ `n_samples` / `seed` / `start_time` / `end_time`；
-- 组件分布：EV/AC 的 `lb/ub` 等抽样量单独设置分布参数（如 `cv:0.10`）；**未配置的抽样量固定为曲线值（方案A）**——预测场景默认只配置 EV/AC 的 lb/ub；
+- 组件分布：EV/AC 的 `lb/ub` 等抽样量单独设置分布参数——`mu:曲线名`/`sigma:曲线名` 逐断面取场景 shapes 曲线的 μ 与 σ（默认算例写法），或 `cv:数值` 常数方式（σ=cv×μ，兼容旧配置）；**未配置的抽样量固定为曲线值（方案A）**——预测场景默认只配置 EV/AC 的 lb/ub；
 - 优先级：CLI 显式（`--config/--scenario/--model/--n/--seed/--start-time/--end-time`） > output_mc_config.csv > 内置默认。
 
 ## 2. 抽样与预测规则
 
-- 输入特征 48 维，由场景曲线 + 抽样量构成：
-  - **固定（曲线值）**：35 个负荷当前功率（`Load1~32` 取 `Load*_cur` 曲线，`Fixed_Bus8/22/33` 恒满载）、5 个 PV 辐照度（`PV_Bus*_irr` 曲线）、储能初始能量（`BESS_Bus18_en` 曲线 × 能量窗口）/ 初始功率 0；
-  - **抽样（截断正态）**：EV/AC 的 `lb/ub` 共 6 个，μ=曲线值、σ=cv×μ，ub 先抽（截断 [0,1]），lb 后抽并截断于 [0, ub]（保序）；
+- 输入特征 45 维，由场景曲线 + 抽样量构成：
+  - **固定（曲线值）**：32 个负荷当前功率（`Load1~32` 取场景 shapes 的 `Load*_cur` 曲线）、5 个 PV 辐照度（`PV_Bus*_irr` 曲线）、储能初始能量（`BESS_Bus18_en` 曲线 × 能量窗口上限）/ 初始功率 p\_init = 0；
+  - **抽样（截断正态）**：EV/AC 的 `lb/ub` 共 6 个，μ/σ 逐断面取场景 shapes 曲线（`*_lb_mu`/`*_lb_sigma` 等），ub 先抽（截断 [0,1]），lb 后抽并截断于 [0, ub]（保序）；
 - 每个断面独立抽样 N 次，min/max 共用同一批抽样；
 - 输出行数 = 断面数 × N × 2（sense）。
 
