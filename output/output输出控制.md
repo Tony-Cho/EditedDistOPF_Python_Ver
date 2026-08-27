@@ -192,7 +192,7 @@ output/output_scenario_default/
 
 ### 1.1 场景预测配置（output_mc_config.csv，读入）
 
-放在 `output/{场景名}/output_mc_config.csv`，**结构与 training_dataset 下的 training_dataset_mc_config.csv 一致**（全局运行参数 + 组件分布，抽样参数在组件行内单独设置），额外多一个 `model` 键索引模型库。由 `--config` 显式指定或自动查找（output/ 下唯一时自动使用）：
+放在 `output/{场景名}/output_mc_config.csv`，**结构与 training_dataset 下的 training_dataset_mc_config.csv 一致**（全局运行参数 + 组件分布，抽样参数在组件行内单独设置），额外多一个 `model` 键索引模型库。由 `--config` 显式指定，或自动查找（顺序：`--scenario` 目录 → 默认算例 `output_scenario_default` → output/ 下唯一一份配置；多份且无 `--scenario` 时必须 `--config`）：
 
 ```csv
 name,value

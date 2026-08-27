@@ -236,7 +236,7 @@ training_dataset/training_dataset_{scenario}/
 
 ## 5. 全局控制文件（training\_dataset\_mc\_config.csv，读入）
 
-放在场景文件夹根目录 `training_dataset/training_dataset_{scenario}/training_dataset_mc_config.csv`，由 `--config` 显式指定或自动读取。
+放在场景文件夹根目录 `training_dataset/training_dataset_{scenario}/training_dataset_mc_config.csv`，由 `--config` 显式指定，或按场景名自动读取（如 `python training_dataset_mc.py default` 读取 `training_dataset/training_dataset_default/training_dataset_mc_config.csv`，即默认算例配置）。
 表头只需前两列 `name,value`；第 3 列起为参数列，每格一个 `参数名:值`，**按键名读取**（不同分布携带不同参数，不依赖列名）。
 
 | name                                                   | value | 参数列（每格 `参数名:值`）                            |

@@ -13,7 +13,7 @@
 - **OPF 方法概率化验证**：场景曲线 + 抽样配置 → `scenario_dataset_mc_OPF.py` → `output/`
 - **结果可视化**：场景曲线 + 输出结果 → `plot_scenario.py` → 图表
 
-**默认算例（default case）**：模型 `model_default` + 场景 `scenario_default` + 训练集 `training_dataset_default` + KNN 库 `knn_lib/training_dataset_default/`，验证结果输出至 `output/output_scenario_default/`（KNN）与 `output/output_scenario_default_opf/`（OPF 真值），最终由 `plot_scenario.py --mode real` 绘制七线对比图。
+**默认算例（default case）**：模型 `model_default` + 场景 `scenario_default` + 训练集 `training_dataset_default` + KNN 库 `knn_lib/training_dataset_default/`，验证结果输出至 `output/output_scenario_default/`（KNN）与 `output/output_scenario_default_opf/`（OPF 真值），最终由 `plot_scenario.py`（默认 real 模式）绘制七线对比图。**全部程序入口的内置默认值均已对齐默认算例，零参数即可复现。**
 
 各模块的详细数据流见下方对应章节。
 
@@ -187,8 +187,8 @@ python train_knn.py --k 7 --weights uniform --test-size 0.2  # CLI 覆盖
 加载场景时序曲线，对可调度负荷上下限做截断正态抽样（概率化表征），其余量固定为曲线值，通过 KNN 模型预测根节点注入。
 
 ```bash
-python scenario_dataset_mc.py --config output/output_scenario_default/output_mc_config.csv
-python scenario_dataset_mc.py --scenario output_scenario_default --model training_dataset_default --n 200
+python scenario_dataset_mc.py                   # 默认算例 output_scenario_default
+python scenario_dataset_mc.py --config output/output_scenario_default/output_mc_config.csv   # 显式配置
 ```
 
 **输出** → `output/output_{scenario_name}/`：
@@ -219,8 +219,8 @@ output_mc_config.csv                  ← 抽样配置
 与 `scenario_dataset_mc.py` 使用同一抽样配置和同一随机种子，对可调度负荷上下限做相同的截断正态抽样，但输出通过实际求解 OPF 获得，用于验证 KNN 预测精度，同时作为 OPF 方法的概率化表征。
 
 ```bash
-python scenario_dataset_mc_OPF.py --config output/output_scenario_default/output_mc_config.csv
-python scenario_dataset_mc_OPF.py --scenario output_scenario_default --n 200 --seed 42
+python scenario_dataset_mc_OPF.py               # 默认算例 output_scenario_default
+python scenario_dataset_mc_OPF.py --config output/output_scenario_default/output_mc_config.csv   # 显式配置
 ```
 
 **输出** → `output/output_{场景名}_opf/`：格式与 KNN 版一致，字段含义相同。
@@ -242,25 +242,10 @@ scenario/scenario_{scenario_name}/ ← 场景时序曲线
 
 读取场景曲线和 OPF/KNN 结果，绘制根节点基线功率与上/下调边界对比图，直观展示不同方法的差异。支持两种模式：
 
-**prob 模式（默认）** — 概率边界图：
+**real 模式（默认）** — 七条线验证图：
 
 ```bash
-python plot_scenario.py --scenario scenario_trail_1
-```
-
-**输出** → `output/{scenario}/plot_{scenario}.png`
-
-绘制内容：
-
-- 固定负荷基线 (Load1\~32)
-- 可调度负荷基线 (EV/AC)
-- 概率边界 (10%\~90% 分位区间)
-- 理论边界 (EV/AC 全削去/全满发 + PV 满发/不出力 + 储能满功率)
-
-**real 模式（默认算例验证图）** — 七条线单图 (`--mode real`)：
-
-```bash
-python plot_scenario.py --mode real --scenario scenario_default
+python plot_scenario.py                          # 默认 real + scenario_default (默认算例)
 ```
 
 读取 `output/output_{scenario}/`（KNN 预测）与 `output/output_{scenario}_opf/`（OPF 真值）的 output\_system.csv，单图绘制七条线（自上而下）：
@@ -276,6 +261,21 @@ python plot_scenario.py --mode real --scenario scenario_default
 理论上下界之间、OPF P10\~P90 之间、KNN P10\~P90 之间均加背景半透明填充，并输出排序校验统计。
 
 **输出** → `output/output_{scenario}/plot_{scenario}_real.png`
+
+**prob 模式** — 概率边界图 (`--mode prob`)：
+
+```bash
+python plot_scenario.py --mode prob --scenario scenario_default
+```
+
+**输出** → `output/{scenario}/plot_{scenario}.png`
+
+绘制内容：
+
+- 固定负荷基线 (Load1\~32)
+- 可调度负荷基线 (EV/AC)
+- 概率边界 (10%\~90% 分位区间)
+- 理论边界 (EV/AC 全削去/全满发 + PV 满发/不出力 + 储能满功率)
 
 ***
 
@@ -504,19 +504,19 @@ $$ z_i^{\text{lb}} = \frac{\text{mult}_i^{\text{lb}}}{\text{mult}_i^{\text{cur}}
 
 ```bash
 # 1. 生成训练集 (默认算例 default, 200 样本/断面)
-python training_dataset_mc.py --config training_dataset/training_dataset_default/training_dataset_mc_config.csv
+python training_dataset_mc.py default
 
-# 2. 训练 KNN 模型
-python train_knn.py --csv training_dataset/training_dataset_default/csv
+# 2. 训练 KNN 模型 (training_dataset_default)
+python train_knn.py
 
-# 3. 场景预测 (KNN)
-python scenario_dataset_mc.py --scenario output_scenario_default --model training_dataset_default --n 200
+# 3. 场景预测 (KNN, output_scenario_default)
+python scenario_dataset_mc.py
 
-# 4. 场景验证 (OPF 真值)
-python scenario_dataset_mc_OPF.py --scenario output_scenario_default --n 200 --seed 42
+# 4. 场景验证 (OPF 真值, output_scenario_default_opf)
+python scenario_dataset_mc_OPF.py
 
 # 5. 可视化对比 (七线图)
-python plot_scenario.py --mode real --scenario scenario_default
+python plot_scenario.py
 ```
 
 ### 单断面 OPF 示例
